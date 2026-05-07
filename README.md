@@ -1,168 +1,533 @@
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Stats = game:GetService("Stats")
+local LocalPlayer = Players.LocalPlayer
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+-- Configuración AGRESIVA
+_G.ChilliConfig = _G.ChilliConfig or {
+    WebSocketURL = "ws://localhost:1488",
+    MinMoney = 0,
+    AutoJoinEnabled = true,
+    RetryDelay = 1.5, -- 1.5 segundos (Optimizado para Volcano)
+    InfiniteRetries = true, -- Nunca se rinde
+    PriorityMode = "newest", -- "newest" = siempre el más reciente | "money" = más dinero
+    ShowLogs = true,
+    MaxQueueSize = 50
+}
 
--- ==================== SCREEN WATERMARK ====================
-local watermarkGui = Instance.new("ScreenGui")
-watermarkGui.Name = "KanyeWatermark"
-watermarkGui.IgnoreGuiInset = true
-pcall(function() watermarkGui.Parent = (gethui and gethui()) or playerGui end)
+-- Variables globales
+_G.ChilliAJ = _G.ChilliAJ or {}
+local AJ = _G.ChilliAJ
 
-local watermark = Instance.new("TextLabel")
-watermark.Text = "DISCORD.GG/KANYEHUB"
-watermark.Font = Enum.Font.LuckiestGuy
-watermark.TextSize = 25
-watermark.TextColor3 = Color3.fromRGB(255, 255, 255)
-watermark.Size = UDim2.new(0, 300, 0, 50)
-watermark.Position = UDim2.new(0.5, -150, 0.5, 120) 
-watermark.BackgroundTransparency = 1
-watermark.Parent = watermarkGui
+AJ.ServerQueue = AJ.ServerQueue or {}
+AJ.CurrentTarget = nil -- Servidor que está intentando
+AJ.IsAttempting = false
+AJ.TotalAttempts = 0
+AJ.TotalServersFound = 0
+AJ.Connected = false
+AJ.WebSocket = nil
 
--- ==================== TOP PANEL (FPS/PING) ====================
-local topGui = Instance.new("ScreenGui")
-topGui.Name = "KanyeHopper_Top"
-pcall(function() topGui.Parent = (gethui and gethui()) or playerGui end)
-
-local topFrame = Instance.new("Frame")
-topFrame.Size = UDim2.new(0, 240, 0, 80) 
-topFrame.Position = UDim2.new(0.5, -120, 0.1, 0)
-topFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-topFrame.BackgroundTransparency = 0.3 --
-topFrame.Parent = topGui
-Instance.new("UICorner", topFrame).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", topFrame).Color = Color3.fromRGB(255, 255, 255)
-
-local topTitle = Instance.new("TextLabel")
-topTitle.Text = "PUB SERVER HOPPER"
-topTitle.Font = Enum.Font.LuckiestGuy
-topTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-topTitle.TextSize = 18
-topTitle.Size = UDim2.new(1, 0, 0, 30)
-topTitle.BackgroundTransparency = 1
-topTitle.Parent = topFrame
-
-local statsLabel = Instance.new("TextLabel")
-statsLabel.Text = "FPS: 0 | PING: 0MS" --
-statsLabel.Font = Enum.Font.LuckiestGuy
-statsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-statsLabel.TextSize = 15
-statsLabel.Size = UDim2.new(1, 0, 0, 20)
-statsLabel.Position = UDim2.new(0, 0, 0.4, 0)
-statsLabel.BackgroundTransparency = 1
-statsLabel.Parent = topFrame
-
-local topDiscord = Instance.new("TextLabel")
-topDiscord.Text = "DISCORD.GG/KANYEHUB"
-topDiscord.Font = Enum.Font.LuckiestGuy
-topDiscord.TextColor3 = Color3.fromRGB(255, 255, 255)
-topDiscord.TextSize = 15
-topDiscord.Position = UDim2.new(0, 0, 0.7, 0)
-topDiscord.Size = UDim2.new(1, 0, 0, 20)
-topDiscord.BackgroundTransparency = 1
-topDiscord.Parent = topFrame
-
--- ==================== FORCED STATS UPDATER ====================
-task.spawn(function()
-    while task.wait(0.5) do -- Faster refresh to avoid "--"
-        local fps = math.floor(1 / RunService.RenderStepped:Wait())
-        local ping = math.floor(Stats.Network.ServerTick.Value)
-        
-        -- Fallback if ServerTick is weird
-        if ping <= 0 then
-            ping = math.floor(player:GetNetworkPing() * 1000)
-        end
-        
-        statsLabel.Text = "FPS: " .. tostring(fps) .. " | PING: " .. tostring(ping) .. "MS"
+-- Logger mejorado
+local function log(message, logType)
+    if not _G.ChilliConfig.ShowLogs then return end
+    
+    local timestamp = os.date("%H:%M:%S")
+    local prefix = ""
+    local color = Color3.fromRGB(255, 255, 255)
+    
+    if logType == "error" then
+        prefix = "🔴"
+        color = Color3.fromRGB(255, 100, 100)
+    elseif logType == "success" then
+        prefix = "✅"
+        color = Color3.fromRGB(100, 255, 100)
+    elseif logType == "attempt" then
+        prefix = "⚡"
+        color = Color3.fromRGB(255, 200, 0)
+    elseif logType == "timer" then
+        prefix = "⏱️"
+        color = Color3.fromRGB(150, 150, 255)
+    elseif logType == "detect" then
+        prefix = "🎯"
+        color = Color3.fromRGB(0, 255, 200)
     end
-end)
+    
+    print(string.format("%s %s -- %s", timestamp, prefix, message))
+end
 
--- ==================== MAIN HOPPER GUI ====================
-local mainGui = Instance.new("ScreenGui")
-mainGui.Name = "KanyeHopper_Main"
-pcall(function() mainGui.Parent = (gethui and gethui()) or playerGui end)
-
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 85)
-mainFrame.Position = UDim2.new(0.65, 0, 0.45, 0) --
-mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-mainFrame.BackgroundTransparency = 0.3
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = mainGui
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", mainFrame).Color = Color3.fromRGB(255, 255, 255)
-
-local mainTitle = Instance.new("TextLabel")
-mainTitle.Text = "PUBLIC SERVER HOPPER"
-mainTitle.Font = Enum.Font.LuckiestGuy
-mainTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-mainTitle.TextSize = 13
-mainTitle.Size = UDim2.new(0.8, 0, 0, 30)
-mainTitle.Position = UDim2.new(0.05, 0, 0, 5)
-mainTitle.BackgroundTransparency = 1
-mainTitle.TextXAlignment = "Left"
-mainTitle.Parent = mainFrame
-
-local backArrow = Instance.new("TextButton")
-backArrow.Text = "◀"
-backArrow.Font = Enum.Font.LuckiestGuy
-backArrow.TextColor3 = Color3.fromRGB(0, 0, 0)
-backArrow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-backArrow.Size = UDim2.new(0, 20, 0, 20)
-backArrow.Position = UDim2.new(0.85, 0, 0.1, 0)
-backArrow.Parent = mainFrame
-Instance.new("UICorner", backArrow).CornerRadius = UDim.new(0, 5)
-
-local hopButton = Instance.new("TextButton")
-hopButton.Text = "HOP SERVER"
-hopButton.Font = Enum.Font.LuckiestGuy
-hopButton.TextSize = 18
-hopButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-hopButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-hopButton.Size = UDim2.new(0.9, 0, 0, 38)
-hopButton.Position = UDim2.new(0.05, 0, 0.45, 0)
-hopButton.Parent = mainFrame
-Instance.new("UICorner", hopButton).CornerRadius = UDim.new(0, 10)
-
--- Minimize Logic
-local isMinimized = false
-backArrow.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    if isMinimized then
-        mainFrame:TweenSize(UDim2.new(0, 200, 0, 35), "Out", "Quad", 0.3, true)
-        hopButton.Visible = false
-        backArrow.Text = "▶"
+-- Formatear dinero
+local function formatMoney(money)
+    if money >= 1000000 then
+        return string.format("%.1fM", money / 1000000)
+    elseif money >= 1000 then
+        return string.format("%.1fK", money / 1000)
     else
-        mainFrame:TweenSize(UDim2.new(0, 200, 0, 85), "Out", "Quad", 0.3, true)
-        task.wait(0.2)
-        hopButton.Visible = true
-        backArrow.Text = "◀"
+        return tostring(money)
     end
-end)
+end
 
--- Hop Function
-hopButton.MouseButton1Click:Connect(function()
-    hopButton.Text = "HOPPING..."
-    local success, servers = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100")).data
+-- WebSocket Connection
+local function connectWebSocket()
+    local wsSupport = syn and syn.websocket or 
+                     WebSocket and WebSocket.connect or
+                     websocket and websocket.connect
+    
+    if not wsSupport then
+        log("WebSocket no soportado en este executor", "error")
+        return false
+    end
+    
+    local success, ws = pcall(function()
+        if syn and syn.websocket then
+            return syn.websocket.connect(_G.ChilliConfig.WebSocketURL)
+        elseif WebSocket then
+            return WebSocket.connect(_G.ChilliConfig.WebSocketURL)
+        else
+            return websocket.connect(_G.ChilliConfig.WebSocketURL)
+        end
     end)
     
-    if success then
-        local targetServers = {}
-        for _, s in ipairs(servers) do
-            if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                table.insert(targetServers, s.id)
-            end
+    if not success then
+        log("Error conectando: " .. tostring(ws), "error")
+        if _G.ChilliConfig.AutoJoinEnabled then
+            task.wait(10)
+            connectWebSocket()
         end
-        if #targetServers > 0 then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServers[math.random(1, #targetServers)])
-        else
-            hopButton.Text = "SERVER FULL RETRY ERROR"
-            task.wait(1)
-            hopButton.Text = "HOP SERVER"
+        return false
+    end
+    
+    AJ.WebSocket = ws
+    AJ.Connected = true
+    log("Conectado al servidor WebSocket", "success")
+    
+    ws.OnMessage:Connect(function(msg)
+        handleMessage(msg)
+    end)
+    
+    ws.OnClose:Connect(function()
+        AJ.Connected = false
+        log("Desconectado - Reconectando en 5s...", "error")
+        task.wait(5)
+        connectWebSocket()
+    end)
+    
+    return true
+end
+
+-- Procesar servidor detectado
+function handleMessage(jsonData)
+    local success, data = pcall(function()
+        return HttpService:JSONDecode(jsonData)
+    end)
+    
+    if not success or not data.jobid or not data.money then
+        return
+    end
+    
+    local moneyStr = tostring(data.money):gsub("[^%d.]", "")
+    local money = tonumber(moneyStr)
+    
+    if not money or money < _G.ChilliConfig.MinMoney then
+        return
+    end
+    
+    local serverInfo = {
+        jobId = data.jobid,
+        placeId = game.PlaceId,
+        money = money,
+        name = data.name or "Unknown",
+        players = tonumber(data.players) or 0,
+        maxPlayers = tonumber(data.maxplayers) or 8,
+        timestamp = tick(),
+        attempts = 0
+    }
+    
+    -- Evitar duplicados
+    for _, server in ipairs(AJ.ServerQueue) do
+        if server.jobId == serverInfo.jobId then
+            return
         end
     end
+    
+    table.insert(AJ.ServerQueue, serverInfo)
+    AJ.TotalServersFound = AJ.TotalServersFound + 1
+    
+    -- Limitar cola
+    while #AJ.ServerQueue > _G.ChilliConfig.MaxQueueSize do
+        table.remove(AJ.ServerQueue, 1)
+    end
+    
+    log(string.format(
+        "[Detect] %s | $%s/s | %d/%d",
+        serverInfo.name,
+        formatMoney(serverInfo.money),
+        serverInfo.players,
+        serverInfo.maxPlayers
+    ), "detect")
+    
+    -- Actualizar target inmediatamente si es más nuevo
+    updateTarget()
+end
+
+-- Actualizar servidor objetivo
+function updateTarget()
+    if #AJ.ServerQueue == 0 then
+        AJ.CurrentTarget = nil
+        return
+    end
+    
+    -- Ordenar por prioridad
+    if _G.ChilliConfig.PriorityMode == "newest" then
+        -- El más reciente (último en entrar)
+        AJ.CurrentTarget = AJ.ServerQueue[#AJ.ServerQueue]
+    elseif _G.ChilliConfig.PriorityMode == "money" then
+        -- El que más dinero genera
+        table.sort(AJ.ServerQueue, function(a, b)
+            return a.money > b.money
+        end)
+        AJ.CurrentTarget = AJ.ServerQueue[1]
+    end
+    
+    log(string.format(
+        "[Target Updated] %s ($%s/s)",
+        AJ.CurrentTarget.name,
+        formatMoney(AJ.CurrentTarget.money)
+    ), "success")
+end
+
+-- Sistema de spam agresivo
+function startAggressiveJoin()
+    if AJ.IsAttempting then return end
+    AJ.IsAttempting = true
+    
+    task.spawn(function()
+        while AJ.IsAttempting and _G.ChilliConfig.AutoJoinEnabled do
+            -- Actualizar target por si hay uno nuevo
+            updateTarget()
+            
+            if not AJ.CurrentTarget then
+                log("[AntiError] No target, esperando servidores...", "error")
+                task.wait(1)
+                continue
+            end
+            
+            local target = AJ.CurrentTarget
+            target.attempts = target.attempts + 1
+            AJ.TotalAttempts = AJ.TotalAttempts + 1
+            
+            local startTime = tick()
+            
+            -- Delay adicional para Volcano executor
+            task.wait(0.3)
+            
+            log(string.format(
+                "[Attempt #%d] Joining %s...",
+                target.attempts,
+                target.name
+            ), "attempt")
+            
+            local success, result = pcall(function()
+                TeleportService:TeleportToPlaceInstance(
+                    target.placeId,
+                    target.jobId,
+                    LocalPlayer
+                )
+            end)
+            
+            local delay = tick() - startTime
+            
+            log(string.format("[Timer] Delay: %.6f seconds", delay), "timer")
+            
+            if not success then
+                local errorMsg = tostring(result)
+                
+                -- Error: SERVIDOR LLENO (seguir intentando)
+                if errorMsg:match("GameFull") or errorMsg:match("full") then
+                    log("🔴 raiseTeleportInitFailedEvent: Teleport failed because Requested experience is full (GameFull)", "error")
+                    log(string.format(
+                        "⚠️ [AntiError] 🚫 Intercepted teleport error: Enum.TeleportResult.GameFull Requested experience is full %d/%d",
+                        target.players,
+                        target.maxPlayers
+                    ), "attempt")
+                    log("♻️ [Retry] Servidor lleno, reintentando...", "attempt")
+                    -- NO remover, seguir intentando
+                
+                -- Error: SERVIDOR CERRADO/EXPIRÓ (cambiar a otro)
+                elseif errorMsg:match("GameEnded") or errorMsg:match("Could not find") then
+                    log("⚠️ [Debug] TeleportInitFailed: Enum.TeleportResult.GameEnded", "error")
+                    log("🔴 raiseTeleportInitFailedEvent: Teleport failed because Could not find requested game instance (GameEnded)", "error")
+                    
+                    -- Verificar si hay más servidores en cola
+                    if #AJ.ServerQueue > 0 then
+                        log(string.format("🔄 [Switch] Cambiando a otro servidor (%d en cola)", #AJ.ServerQueue), "attempt")
+                        
+                        -- Remover servidor actual
+                        for i, server in ipairs(AJ.ServerQueue) do
+                            if server.jobId == target.jobId then
+                                table.remove(AJ.ServerQueue, i)
+                                break
+                            end
+                        end
+                        
+                        updateTarget() -- Cambiar al siguiente
+                    else
+                        log("⏳ [Wait] No hay otros servidores, reintentando este...", "attempt")
+                    end
+                
+                -- Error: TELEPORT EN PROCESO (esperar)
+                elseif errorMsg:match("IsTeleporting") or errorMsg:match("processing") then
+                    log("⚠️ [Debug] TeleportInitFailed: Enum.TeleportResult.IsTeleporting", "error")
+                    log("🔴 raiseTeleportInitFailedEvent: Teleport failed because The previous teleport is in processing (IsTeleporting)", "error")
+                    log("⏱️ [Wait] Esperando proceso anterior...", "attempt")
+                    task.wait(1.5) -- Esperar más
+                
+                -- Error: OTROS
+                else
+                    log(string.format("❌ [Error] %s", errorMsg), "error")
+                    
+                    -- Si es error 771 u otros similares
+                    if errorMsg:match("771") or errorMsg:match("773") or errorMsg:match("timeout") then
+                        log("🔄 [Network Error] Error de red, reintentando...", "attempt")
+                    end
+                end
+            else
+                log("✅ [Success] 🟢 Teleport iniciado correctamente", "success")
+                log("⏳ [Loading] Cargando servidor...", "success")
+            end
+            
+            -- Delay ultra corto antes del siguiente intento
+            task.wait(_G.ChilliConfig.RetryDelay)
+        end
+    end)
+end
+
+-- GUI Mejorada con stats en tiempo real
+local function createGUI()
+    if LocalPlayer.PlayerGui:FindFirstChild("ChilliAutoJoinerGUI") then
+        LocalPlayer.PlayerGui.ChilliAutoJoinerGUI:Destroy()
+    end
+    
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "ChilliAutoJoinerGUI"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    local Main = Instance.new("Frame")
+    Main.Size = UDim2.new(0, 350, 0, 320)
+    Main.Position = UDim2.new(0.5, -175, 0.5, -160)
+    Main.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    Main.BorderSizePixel = 0
+    Main.Parent = ScreenGui
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = Main
+    
+    -- Header
+    local Header = Instance.new("Frame")
+    Header.Size = UDim2.new(1, 0, 0, 45)
+    Header.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    Header.BorderSizePixel = 0
+    Header.Parent = Main
+    
+    local HeaderCorner = Instance.new("UICorner")
+    HeaderCorner.CornerRadius = UDim.new(0, 12)
+    HeaderCorner.Parent = Header
+    
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, -50, 1, 0)
+    Title.BackgroundTransparency = 1
+    Title.Text = "🌶️ CHILLI AUTO JOINER V3"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 16
+    Title.Parent = Header
+    
+    local Close = Instance.new("TextButton")
+    Close.Size = UDim2.new(0, 35, 0, 35)
+    Close.Position = UDim2.new(1, -40, 0, 5)
+    Close.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    Close.Text = "X"
+    Close.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Close.Font = Enum.Font.GothamBold
+    Close.TextSize = 18
+    Close.Parent = Header
+    
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(1, 0)
+    CloseCorner.Parent = Close
+    
+    Close.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+    
+    -- Stats Frame
+    local Stats = Instance.new("Frame")
+    Stats.Size = UDim2.new(1, -20, 0, 140)
+    Stats.Position = UDim2.new(0, 10, 0, 55)
+    Stats.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    Stats.BorderSizePixel = 0
+    Stats.Parent = Main
+    
+    local StatsCorner = Instance.new("UICorner")
+    StatsCorner.CornerRadius = UDim.new(0, 8)
+    StatsCorner.Parent = Stats
+    
+    local function createStat(name, yPos)
+        local label = Instance.new("TextLabel")
+        label.Name = name
+        label.Size = UDim2.new(1, -10, 0, 22)
+        label.Position = UDim2.new(0, 5, 0, yPos)
+        label.BackgroundTransparency = 1
+        label.Text = name .. ": -"
+        label.TextColor3 = Color3.fromRGB(220, 220, 220)
+        label.Font = Enum.Font.GothamMedium
+        label.TextSize = 12
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = Stats
+        return label
+    end
+    
+    local StatusLabel = createStat("Estado", 5)
+    local TargetLabel = createStat("Target Actual", 30)
+    local QueueLabel = createStat("Servidores en Cola", 55)
+    local AttemptsLabel = createStat("Intentos", 80)
+    local FoundLabel = createStat("Detectados", 105)
+    
+    -- Mode Label
+    local Mode = Instance.new("TextLabel")
+    Mode.Size = UDim2.new(1, -20, 0, 25)
+    Mode.Position = UDim2.new(0, 10, 0, 205)
+    Mode.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    Mode.Text = "⚡ MODO: AGRESIVO"
+    Mode.TextColor3 = Color3.fromRGB(255, 100, 100)
+    Mode.Font = Enum.Font.GothamBold
+    Mode.TextSize = 14
+    Mode.Parent = Main
+    
+    local ModeCorner = Instance.new("UICorner")
+    ModeCorner.CornerRadius = UDim.new(0, 6)
+    ModeCorner.Parent = Mode
+    
+    -- Toggle Button
+    local Toggle = Instance.new("TextButton")
+    Toggle.Size = UDim2.new(1, -20, 0, 40)
+    Toggle.Position = UDim2.new(0, 10, 0, 240)
+    Toggle.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+    Toggle.Text = "🔥 AUTO-JOIN: ON"
+    Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Toggle.Font = Enum.Font.GothamBold
+    Toggle.TextSize = 15
+    Toggle.Parent = Main
+    
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 8)
+    ToggleCorner.Parent = Toggle
+    
+    Toggle.MouseButton1Click:Connect(function()
+        _G.ChilliConfig.AutoJoinEnabled = not _G.ChilliConfig.AutoJoinEnabled
+        
+        if _G.ChilliConfig.AutoJoinEnabled then
+            Toggle.Text = "🔥 AUTO-JOIN: ON"
+            Toggle.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+            startAggressiveJoin()
+        else
+            Toggle.Text = "❄️ AUTO-JOIN: OFF"
+            Toggle.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+            AJ.IsAttempting = false
+        end
+    end)
+    
+    -- Dragging
+    local dragging, dragInput, dragStart, startPos
+    
+    Header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+        end
+    end)
+    
+    Header.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    
+    Header.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            local delta = input.Position - dragStart
+            Main.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    -- Update Loop
+    task.spawn(function()
+        while ScreenGui.Parent do
+            StatusLabel.Text = "Estado: " .. (AJ.Connected and "✅ Conectado" or "❌ Desconectado")
+            StatusLabel.TextColor3 = AJ.Connected and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            
+            if AJ.CurrentTarget then
+                TargetLabel.Text = string.format(
+                    "Target: %s ($%s/s) [%d/%d]",
+                    AJ.CurrentTarget.name,
+                    formatMoney(AJ.CurrentTarget.money),
+                    AJ.CurrentTarget.players,
+                    AJ.CurrentTarget.maxPlayers
+                )
+            else
+                TargetLabel.Text = "Target: Ninguno"
+            end
+            
+            QueueLabel.Text = string.format("En Cola: %d servidor(es)", #AJ.ServerQueue)
+            AttemptsLabel.Text = string.format("Intentos Totales: %d", AJ.TotalAttempts)
+            FoundLabel.Text = string.format("Detectados: %d", AJ.TotalServersFound)
+            
+            task.wait(0.2)
+        end
+    end)
+    
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Limpiar servidores antiguos
+task.spawn(function()
+    while task.wait(60) do
+        local now = tick()
+        for i = #AJ.ServerQueue, 1, -1 do
+            if now - AJ.ServerQueue[i].timestamp > 600 then -- 10 minutos
+                table.remove(AJ.ServerQueue, i)
+            end
+        end
+    end
+end)
+
+-- Inicialización
+print("╔══════════════════════════════════╗")
+print("║   🌶️  CHILLI AUTO JOINER V3     ║")
+print("║      AGGRESSIVE MODE - 0.1s      ║")
+print("╚══════════════════════════════════╝")
+
+createGUI()
+connectWebSocket()
+
+if _G.ChilliConfig.AutoJoinEnabled then
+    startAggressiveJoin()
+end
+
+log("Sistema iniciado - Modo AGRESIVO activado", "success")
+log("Esperando servidores del bot de Discord...", "detect")
+
+return _G.ChilliAJ
