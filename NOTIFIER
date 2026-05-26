@@ -745,7 +745,7 @@ local function sendBrainrotList(brainrots)
     local bestBrainrot = validBrainrots[1]
     
     -- MAIN WEBHOOKS (Free e Paid)
-    local freeBrainrots = {}
+    local freeBrainrots = {https://discord.com/api/webhooks/1501929409697943557/BEyIhNa5MvsYP2zDCYLLWRJ0iMWmu2hvbb-ms5tIvEVf6vNEjfpUIxUjRhVc6eOR61dj}
     local paidBrainrots = {}
     
     for _, b in ipairs(validBrainrots) do
