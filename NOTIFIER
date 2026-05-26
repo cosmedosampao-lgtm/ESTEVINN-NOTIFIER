@@ -1,249 +1,1056 @@
-local WEBSOCKET_URL = "wss://moby-brainrot-100m.glitch.me" -- Central WebSocket Ativa
-local DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1501929056138952855/ymyBRV90W5JtgcwtyzMxTN3GCHP8HmDVuCggzCJQl5jr4zTEJ7q8tpZYjrAOGGCDcMv5"
+-- =========================
+-- HOPPER4 - STATIC SCANNER (NO HOPPING)
+-- Stays in server forever, continuously scans and reports
+-- =========================
 
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-local Stats = game:GetService("Stats")
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
+-- =========================
+-- REDUCE QUALITY + CAP FPS
+-- =========================
+local settings = settings()
+local renderSettings = settings:GetService("RenderSettings")
 
-local CoreGui = (gethui and gethui()) or game:GetService("CoreGui")
-local GuiName = "MobyKanyeUnifiedGui"
-
--- Remove versões antigas para não duplicar na tela
-for _, v in pairs(CoreGui:GetChildren()) do
-    if v.Name == GuiName then v:Destroy() end
-end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = GuiName
-ScreenGui.Parent = CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.ResetOnSpawn = false
-
-local ClickSound = Instance.new("Sound", ScreenGui)
-ClickSound.SoundId = "rbxassetid://75311202481026"
-ClickSound.Volume = 0.3
-local function playClick() pcall(function() ClickSound:Play() end) end
-
--- ==================== SCREEN WATERMARK ====================
-local watermark = Instance.new("TextLabel")
-watermark.Text = "DISCORD.GG/KANYEHUB x .GG/MOBYNOTIFIER"
-watermark.Font = Enum.Font.LuckiestGuy
-watermark.TextSize = 25
-watermark.TextColor3 = Color3.fromRGB(255, 255, 255)
-watermark.Size = UDim2.new(0, 400, 0, 50)
-watermark.Position = UDim2.new(0.5, -200, 0.5, 220) 
-watermark.BackgroundTransparency = 1
-watermark.Parent = ScreenGui
-
--- ==================== TOP PANEL (FPS/PING) ====================
-local topFrame = Instance.new("Frame")
-topFrame.Size = UDim2.new(0, 240, 0, 80) 
-topFrame.Position = UDim2.new(0.5, -120, 0.02, 0)
-topFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-topFrame.BackgroundTransparency = 0.3
-topFrame.Parent = ScreenGui
-Instance.new("UICorner", topFrame).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", topFrame).Color = Color3.fromRGB(255, 255, 255)
-
-local topTitle = Instance.new("TextLabel")
-topTitle.Text = "PUB SERVER HOPPER x MOBY"
-topTitle.Font = Enum.Font.LuckiestGuy
-topTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-topTitle.TextSize = 18
-topTitle.Size = UDim2.new(1, 0, 0, 30)
-topTitle.BackgroundTransparency = 1
-topTitle.Parent = topFrame
-
-local statsLabel = Instance.new("TextLabel")
-statsLabel.Text = "FPS: 0 | PING: 0MS"
-statsLabel.Font = Enum.Font.LuckiestGuy
-statsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-statsLabel.TextSize = 15
-statsLabel.Size = UDim2.new(1, 0, 0, 20)
-statsLabel.Position = UDim2.new(0, 0, 0.4, 0)
-statsLabel.BackgroundTransparency = 1
-statsLabel.Parent = topFrame
-
-local topDiscord = Instance.new("TextLabel")
-topDiscord.Text = "STATUS: CONECTANDO REDE..."
-topDiscord.Font = Enum.Font.LuckiestGuy
-topDiscord.TextColor3 = Color3.fromRGB(255, 255, 0)
-topDiscord.TextSize = 14
-topDiscord.Position = UDim2.new(0, 0, 0.7, 0)
-topDiscord.Size = UDim2.new(1, 0, 0, 20)
-topDiscord.BackgroundTransparency = 1
-topDiscord.Parent = topFrame
-
--- Atualizador de FPS/PING do KanyeHub
-task.spawn(function()
-    while task.wait(0.5) do
-        local fps = math.floor(1 / RunService.RenderStepped:Wait())
-        local ping = math.floor(Stats.Network.ServerTick.Value)
-        if ping <= 0 then
-            ping = math.floor(Player:GetNetworkPing() * 1000)
-        end
-        statsLabel.Text = "FPS: " .. tostring(fps) .. " | PING: " .. tostring(ping) .. "MS"
-    end
+pcall(function()
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
 end)
 
--- ==================== MAIN PAINEL (MOBY NOTIFIER) ====================
-local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-local TARGET_SCALE = isMobile and 0.8 or 1.0
-local HIDE_SCALE = TARGET_SCALE - 0.15
+pcall(function()
+    renderSettings.EagerBulkExecution = false
+    renderSettings.FrameRateManager = Enum.FramerateManagerMode.Off
+end)
 
-local Frame = Instance.new("CanvasGroup", ScreenGui)
-Frame.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-Frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Frame.BorderSizePixel = 0
-Frame.Position = UDim2.new(0.5, -303, 0.5, -120)
-Frame.Size = UDim2.new(0, 606, 0, 320)
-Frame.Active = true
-Frame.GroupTransparency = 1
+pcall(function()
+    setfpscap(4)
+end)
 
-local UICorner = Instance.new("UICorner", Frame)
-UICorner.CornerRadius = UDim.new(0, 9)
-local UIScale = Instance.new("UIScale", Frame)
-UIScale.Scale = HIDE_SCALE
+print("[SCANNER] Quality reduced, FPS capped to 4")
 
-TweenService:Create(Frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
-TweenService:Create(UIScale, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Scale = TARGET_SCALE}):Play()
+pcall(function()
+    game:GetService("ReplicatedFirst"):RemoveDefaultLoadingScreen()
+end)
 
-local MobyNotifier = Instance.new("TextLabel", Frame)
-MobyNotifier.BackgroundTransparency = 1
-MobyNotifier.Position = UDim2.new(0, 15, 0, 10)
-MobyNotifier.Size = UDim2.new(0, 150, 0, 30)
-MobyNotifier.Font = Enum.Font.GothamBold
-MobyNotifier.Text = "Moby Notifier"
-MobyNotifier.TextColor3 = Color3.fromRGB(255, 255, 255)
-MobyNotifier.TextSize = 20
-MobyNotifier.TextXAlignment = Enum.TextXAlignment.Left
+pcall(function()
+    game:GetService("Players").RespawnTime = 0
+end)
 
-local MobyNotifier_2 = Instance.new("TextLabel", Frame)
-MobyNotifier_2.BackgroundTransparency = 1
-MobyNotifier_2.Position = UDim2.new(0, 15, 0, 35)
-MobyNotifier_2.Size = UDim2.new(0, 130, 0, 20)
-MobyNotifier_2.Font = Enum.Font.GothamMedium
-MobyNotifier_2.Text = ".gg/mobynotifier"
-MobyNotifier_2.TextColor3 = Color3.fromRGB(122, 122, 122)
-MobyNotifier_2.TextSize = 14
-MobyNotifier_2.TextXAlignment = Enum.TextXAlignment.Left
+local TeleportService = game:GetService("TeleportService")
 
--- ==================== O BOTÃO HOP SERVER DO KANYEHUB ====================
-local hopButton = Instance.new("TextButton", Frame)
-hopButton.Text = "HOP SERVER"
-hopButton.Font = Enum.Font.LuckiestGuy
-hopButton.TextSize = 18
-hopButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-hopButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-hopButton.Size = UDim2.new(0, 130, 0, 40)
-hopButton.Position = UDim2.new(0, 15, 0, 70)
-Instance.new("UICorner", hopButton).CornerRadius = UDim.new(0, 8)
+pcall(function()
+    TeleportService:SetTeleportGui(workspace)
+end)
 
-hopButton.MouseButton1Click:Connect(function()
-    playClick()
-    hopButton.Text = "HOPPING..."
-    local success, servers = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://roblox.com" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100")).data
+-- =========================
+-- WAIT FOR GAME
+-- =========================
+if not game:IsLoaded() then game.Loaded:Wait() end
+repeat task.wait() until game:GetService("Players").LocalPlayer
+
+-- =========================
+-- SERVICES
+-- =========================
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local Player = Players.LocalPlayer
+
+-- =========================
+-- ANTI IDLE
+-- =========================
+do
+    local vu = game:GetService("VirtualUser")
+    local lastAntiIdle = 0
+    Player.Idled:Connect(function()
+        local now = tick()
+        if now - lastAntiIdle < 60 then return end
+        lastAntiIdle = now
+        pcall(function()
+            vu:CaptureController()
+            vu:ClickButton2(Vector2.new())
+        end)
     end)
-    
-    if success then
-        local targetServers = {}
-        for _, s in ipairs(servers) do
-            if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                table.insert(targetServers, s.id)
+end
+
+-- =========================
+-- HTTP REQUEST FUNCTION
+-- =========================
+local function makeRequest(url, method, body, headers)
+    local req = http_request or request or (syn and syn.request) or (fluxus and fluxus.request)
+    if req then
+        local ok, result = pcall(function()
+            return req({
+                Url = url,
+                Method = method or "GET",
+                Headers = headers or {},
+                Body = body
+            })
+        end)
+        return ok and result or nil
+    end
+    return nil
+end
+
+-- =========================
+-- SYNCHRONIZER BYPASS (anti-detection)
+-- =========================
+do
+    local SyncModule = require(game.ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Synchronizer"))
+    local patched = 0
+    for name, fn in pairs(SyncModule) do
+        if typeof(fn) ~= "function" then continue end
+        if isexecutorclosure and isexecutorclosure(fn) then continue end
+        local ok, ups = pcall(debug.getupvalues, fn)
+        if not ok then continue end
+        for idx, val in pairs(ups) do
+            if typeof(val) == "function" then
+                local ok2, innerUps = pcall(debug.getupvalues, val)
+                if ok2 then
+                    local hasBoolean = false
+                    for _, v in pairs(innerUps) do
+                        if typeof(v) == "boolean" then
+                            hasBoolean = true
+                            break
+                        end
+                    end
+                    if hasBoolean then
+                        debug.setupvalue(fn, idx, newcclosure(function() end))
+                        patched = patched + 1
+                    end
+                end
             end
         end
-        if #targetServers > 0 then
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServers[math.random(1, #targetServers)])
-        else
-            hopButton.Text = "FULL RETRY"
-            task.wait(1)
-            hopButton.Text = "HOP SERVER"
-        end
+    end
+    print("[SCANNER] Synchronizer patched:", patched, "functions")
+end
+
+-- =========================
+-- WAIT FOR GAME TO FULLY INITIALIZE
+-- =========================
+-- No wait - start ASAP
+
+-- =========================
+-- SAFE MODULE LOADING
+-- =========================
+local function waitForPath(parent, ...)
+    local current = parent
+    for _, name in ipairs({...}) do
+        current = current:WaitForChild(name, 10)
+        if not current then return nil end
+    end
+    return current
+end
+
+local sync, adar, as, nu
+
+local function loadModules()
+    local ok, err = pcall(function()
+        sync = require(waitForPath(game.ReplicatedStorage, "Packages", "Synchronizer"))
+        adar = require(waitForPath(game.ReplicatedStorage, "Datas", "Animals"))
+        as = require(waitForPath(game.ReplicatedStorage, "Shared", "Animals"))
+        nu = require(waitForPath(game.ReplicatedStorage, "Utils", "NumberUtils"))
+    end)
+    return ok, err
+end
+
+for i = 1, 5 do
+    local ok, err = loadModules()
+    if ok and sync and adar and as and nu then
+        print("[INIT] Modules loaded successfully")
+        break
     else
-        hopButton.Text = "ERROR"
-        task.wait(1)
-        hopButton.Text = "HOP SERVER"
+        print("[INIT] Module load attempt", i, "failed:", err)
+        task.wait(2)
     end
-end)
+end
 
--- ==================== AREA DE LOGS DO MOBY NOTIFIER ====================
-local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+if not (sync and adar and as and nu) then
+    warn("[FATAL] Could not load game modules after 5 attempts")
+    return
+end
 
-local ContentArea = Instance.new("Frame", Frame)
-ContentArea.BackgroundTransparency = 1
-ContentArea.Position = UDim2.new(0, 160, 0, 20)
-ContentArea.Size = UDim2.new(0, 420, 0, 280)
+-- =========================
+-- CONFIG
+-- =========================
+local PLACE_ID = game.PlaceId
+local MIN_VALUE = 900000 -- MÃ­nimo de 900K/s
 
-local MainPage = Instance.new("Frame", ContentArea)
-MainPage.BackgroundTransparency = 1
-MainPage.Size = UDim2.new(1, 0, 1, 0)
+-- =========================
+-- RYZENOTIFY WEBHOOKS (MAIN)
+-- =========================
+local WEBHOOK_FREE = "https://discord.com/api/webhooks/1504216334043451542/bzHqQrqC2xw1P5Q8ibNaUZH1etIHw2a5-Z1pnDxn1BySUqI6y79RWei9EZKL0-JPuG4v?with_components=true"
+local WEBHOOK_PAID = "https://discord.com/api/webhooks/1504216436673871902/SIUa7CnCBLpTEpS9dLoS6KSVFlEzjJkGhTykETWvUgvg2lLWZKOaNK9SkpwYPF8RvL8Y?with_components=true"
 
-local LogScroll = Instance.new("ScrollingFrame", MainPage)
-LogScroll.Active = true
-LogScroll.BackgroundTransparency = 1
-LogScroll.BorderSizePixel = 0
-LogScroll.Size = UDim2.new(1, 0, 1, -10)
-LogScroll.ScrollBarThickness = 2
-LogScroll.ScrollBarImageColor3 = Color3.fromRGB(50, 50, 50)
-LogScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+-- =========================
+-- SHOWCASE WEBHOOKS
+-- =========================
+local SHOWCASE_WEBHOOKS = {
+    {
+        url = "https://discord.com/api/webhooks/1501929056138952855/ymyBRV90W5JtgcwtyzMxTN3GCHP8HmDVuCggzCJQl5jr4zTEJ7q8tpZYjrAOGGCDcMv5",
+        name = "RyzeNotify - MidLights",
+        min = 10000000,
+        max = 200000000
+    },
+    {
+        url = "https://discord.com/api/webhooks/1502438965393887303/J7Sj-o_RkJG8zxsqGb22QBDXpEJhYPfw1i26nyC6MSMXTatgF3M8xM2O2K2F8Qz7nyck?with_components=true",
+        name = "RyzeNotify - HighLight",
+        min = 200000000,
+        max = 700000000
+    },
+    {
+        url = "https://discord.com/api/webhooks/1502438965397950595/ffdea9-wU2_U8sWzOUfK9wk0xAPwlpuy0d-pSjwxgWFKTbSG5uUL8T7mFCA1oiaE2AIO?with_components=true",
+        name = "RyzeNotify - UltraLight",
+        min = 700000000,
+        max = 20000000000
+    }
+}
 
-local LogLayout = Instance.new("UIListLayout", LogScroll)
-LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
-LogLayout.Padding = UDim.new(0, 8)
+-- =========================
+-- MUTATION EMOJIS
+-- =========================
+local MUTATION_EMOJIS = {
+    None = "<:None:1499480298251878572>",
+    Gold = "<:Gold:1499480336441282721>",
+    Diamond = "<:Diamond:1499480527701414040>",
+    Rainbow = "<:Raimbow:1499480593954504828>",
+    Bloodrot = "<:Bloodrot:1499480404938457188>",
+    Candy = "<:Candy:1499480426559832235>",
+    Lava = "<:Lava:1499480547980742818>",
+    Galaxy = "<:Galaxy:1499480890131087564>",
+    YangYing = "<:YanYing:1499480568801263646>",
+    Radioactive = "<:Radioactive:1499480613714133175>",
+    Cursed = "<:Cursed:1499480451004235923>",
+    Divine = "<:Divine:1499480506561986662>",
+    Cyber = "<:Cyber:1499480479588421692>",
+}
 
-local LogEntries = {}
-local CurrentFilter = "AJ"
-local RenderedIDs = {}
+-- =========================
+-- TRAIT EMOJIS
+-- =========================
+local TRAIT_EMOJIS = {
+    ["Strawberry"] = "<:Strawberry:1500537670496157818>",
+    ["Meowl"] = "<:Meowl:1500537750204448878>",
+    ["JohnPork"] = "<:JohnPork:1500537789895151627>",
+    ["Skibidi"] = "<:Skibidi:1500537942270152774>",
+    ["10B"] = "<:10B:1500540912776773642>",
+    ["26"] = "<:26:1500540971354423486>",
+    ["BlueBalloon"] = "<:BlueBalloon:1500541065571336302>",
+    ["Blue Egg"] = "<:BlueEgg:1500541183796051988>",
+    ["Brazil"] = "<:Brazil:1500541315723694200>",
+    ["Bubblegum"] = "<:Bubblegum:1500541444769710100>",
+    ["BunnyEars"] = "<:BunnyEars:1500541497345314977>",
+    ["Chocolate"] = "<:Chocolate:1500541554513805503>",
+    ["Cometstruck"] = "<:Cometstruck:1500541609010532474>",
+    ["CrabClaw"] = "<:CrabClaw:1500541687796207818>",
+    ["Disco"] = "<:Disco:1500541742703968427>",
+    ["Explosive"] = "<:Explosive:1500541816347558049>",
+    ["Fire"] = "<:Fire:1500541857090768906>",
+    ["Fireworks"] = "<:Fireworks:1500541909171437669>",
+    ["Galactic"] = "<:Galactic:1500541971775623268>",
+    ["Nyan"] = "<:Nyan:1500542996448542831>",
+    ["gato3"] = "<:Nyan:1500542996448542831>",
+    ["Glitched"] = "<:Glitched:1500542207000842383>",
+    ["Granny"] = "<:Granny:1500542255658696806>",
+    ["GreenBalloon"] = "<:GreenBalloon:1500542307429257488>",
+    ["Green Egg"] = "<:GreenEgg:1500542370238955711>",
+    ["Halo"] = "<:Halo:1500542420847427766>",
+    ["Indonesia"] = "<:Indonesia:1500542470554128685>",
+    ["JackOLanternPet"] = "<:JackOLanternPet:1500542523951546518>",
+    ["Lightning"] = "<:Lightning:1500542778625491076>",
+    ["Lucky"] = "<:Lucky:1500542822816678129>",
+    ["MatteoHat"] = "<:MatteoHat:1500542880253743104>",
+    ["OrangeBalloon"] = "<:OrangeBalloon:1500543079931838604>",
+    ["Orange Egg"] = "<:OrangeEgg:1500543143206977742>",
+    ["Paint"] = "<:Paint:1500543217345626332>",
+}
 
-local function ApplyFilter()
-    for _, entry in ipairs(LogEntries) do
-        local v = entry.NumericValue
-        if CurrentFilter == "AJ" then
-            entry.UI.Visible = true
-        elseif CurrentFilter == "10m+" then
-            entry.UI.Visible = (v >= 10000000 and v < 50000000)
-        elseif CurrentFilter == "50m+" then
-            entry.UI.Visible = (v >= 50000000 and v < 100000000)
-        elseif CurrentFilter == "100m+" then
-            entry.UI.Visible = (v >= 100000000)
+-- =========================
+-- FORMAT MUTATION WITH EMOJI
+-- =========================
+local function formatMutation(mutation)
+    if not mutation or mutation == "" or mutation == "nil" then 
+        return MUTATION_EMOJIS.None or "None"
+    end
+    
+    for key, emoji in pairs(MUTATION_EMOJIS) do
+        if mutation:lower() == key:lower() then
+            return emoji
+        end
+    end
+    
+    for key, emoji in pairs(MUTATION_EMOJIS) do
+        if mutation:lower():find(key:lower()) then
+            return emoji
+        end
+    end
+    
+    return mutation
+end
+
+-- =========================
+-- FORMAT TRAITS WITH EMOJIS
+-- =========================
+local function formatTraits(traits)
+    if not traits or #traits == 0 then return nil end
+    local parts = {}
+    for _, trait in ipairs(traits) do
+        local found = false
+        local emojiFound = nil
+        
+        for key, emoji in pairs(TRAIT_EMOJIS) do
+            if trait:lower() == key:lower() then
+                emojiFound = emoji
+                found = true
+                break
+            end
+        end
+        
+        if not found then
+            for key, emoji in pairs(TRAIT_EMOJIS) do
+                if trait:lower():find(key:lower(), 1, true) then
+                    emojiFound = emoji
+                    found = true
+                    break
+                end
+            end
+        end
+        
+        if found and emojiFound then
+            table.insert(parts, emojiFound)
         else
-            entry.UI.Visible = false
+            table.insert(parts, trait)
         end
+    end
+    
+    if #parts > 0 then
+        return table.concat(parts, " - ")
+    end
+    return nil
+end
+
+-- =========================
+-- FORMAT MONEY
+-- =========================
+local function formatMoney(v)
+    if v >= 1e9 then
+        return string.format("%.2fB/s", v / 1e9)
+    elseif v >= 1e6 then
+        return string.format("%.2fM/s", v / 1e6)
+    elseif v >= 1e3 then
+        return string.format("%.2fK/s", v / 1e3)
+    else
+        return string.format("%.0f/s", v)
     end
 end
 
-local function JoinServer(placeId, jobId)
-    pcall(function() TeleportService:TeleportToPlaceInstance(tonumber(placeId), jobId, Player) end)
+-- =========================
+-- CHECK IF ANIMAL IS FUSING
+-- =========================
+local function isFusing(animalData)
+    if animalData.Machine then
+        if animalData.Machine.Type == "Fuse" and animalData.Machine.Active then
+            return true
+        end
+    end
+    return false
 end
 
-local function ForceServer(placeId, jobId)
-    task.spawn(function()
-        for i = 1, 50 do
-            pcall(function() TeleportService:TeleportToPlaceInstance(tonumber(placeId), jobId, Player) end)
-            task.wait(2.5)
+-- =========================
+-- CHECK IF ANIMAL IS IN DUEL
+-- =========================
+local function isInDuel(animalData)
+    local data = animalData.Data or animalData
+    if animalData.Machine and type(animalData.Machine) == "table" then
+        local mType = animalData.Machine.Type
+        if type(mType) == "string" and mType:lower():find("duel") then return true end
+    end
+    if data and type(data) == "table" and data.Machine and type(data.Machine) == "table" then
+        local mType = data.Machine.Type
+        if type(mType) == "string" and mType:lower():find("duel") then return true end
+    end
+    if animalData.InDuel == true or animalData.inDuel == true or animalData.in_duel == true then return true end
+    if type(data) == "table" then
+        if data.InDuel == true or data.inDuel == true then return true end
+    end
+    return false
+end
+
+-- =========================
+-- DUEL DETECTION
+-- =========================
+local function cameBackFromDuel(player)
+    if player == Player then
+        local ok, data = pcall(function()
+            return TeleportService:GetLocalPlayerTeleportData()
+        end)
+        if ok and type(data) == "table" then
+            if data.fromDuel or data.DuelData or data.duel then return true end
         end
+    end
+
+    for _, child in ipairs(player:GetChildren()) do
+        local nameLower = child.Name:lower()
+        if nameLower:find("duel") or nameLower:find("returned") then
+            return true
+        end
+    end
+
+    local attrOk, attrs = pcall(function() return player:GetAttributes() end)
+    if attrOk and attrs then
+        for key, val in pairs(attrs) do
+            if key:lower():find("duel") or key:lower():find("returned") then
+                if val == true or val == 1 then return true end
+            end
+        end
+    end
+
+    return false
+end
+
+local function getPlotOwner(plot)
+    local owner = plot:GetAttribute("Owner") or plot:GetAttribute("PlayerName") or plot.Name
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name == owner or tostring(player.UserId) == owner then
+            return player
+        end
+    end
+    return nil
+end
+
+local function getDuelPlayers()
+    local duelPlayers = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if cameBackFromDuel(player) then
+            duelPlayers[player.Name] = true
+            duelPlayers[tostring(player.UserId)] = true
+        end
+    end
+    return duelPlayers
+end
+
+local function isPlotOwnerInDuel(plot, duelPlayers)
+    local owner = plot:GetAttribute("Owner") or plot:GetAttribute("PlayerName") or plot.Name
+    if duelPlayers[owner] or duelPlayers[tostring(owner)] then
+        return true
+    end
+    local player = getPlotOwner(plot)
+    if player and (duelPlayers[player.Name] or duelPlayers[tostring(player.UserId)]) then
+        return true
+    end
+    return false
+end
+
+-- =========================
+-- EXTRACT MUTATION AND TRAITS
+-- =========================
+local function extractMutation(animalData)
+    if not animalData then return nil end
+    local raw = animalData.Mutation or (animalData.Data and animalData.Data.Mutation)
+    if type(raw) == "table" then
+        raw = table.concat(raw, ", ")
+    else
+        raw = tostring(raw or "")
+    end
+    raw = raw:match("^%s*(.-)%s*$")
+    if raw == "" or raw == "nil" then return "None" end
+    return raw
+end
+
+local function extractTraits(animalData)
+    local traits = {}
+    local raw = animalData.Traits or (animalData.Data and animalData.Data.Traits)
+    if type(raw) == "table" then
+        for _, t in ipairs(raw) do table.insert(traits, t) end
+    elseif type(raw) == "string" and raw ~= "" then
+        table.insert(traits, raw)
+    end
+    return traits
+end
+
+-- =========================
+-- PLOT SCANNER
+-- =========================
+local function scanBrainrots()
+    local animals = {}
+    local duelPlayers = getDuelPlayers()
+
+    pcall(function()
+        local Packages = game.ReplicatedStorage:FindFirstChild("Packages")
+        local Datas = game.ReplicatedStorage:FindFirstChild("Datas")
+        local Shared = game.ReplicatedStorage:FindFirstChild("Shared")
+
+        if not Packages or not Datas or not Shared then return end
+
+        local Synchronizer = require(Packages.Synchronizer)
+        local AnimalsData = require(Datas.Animals)
+        local AnimalsShared = require(Shared.Animals)
+
+        local plots = Workspace:FindFirstChild("Plots")
+        if not plots then return end
+
+        for _, plot in ipairs(plots:GetChildren()) do
+            local channel = Synchronizer:Get(plot.Name)
+            local animalList = channel and channel:Get("AnimalList")
+            local owner = channel and channel:Get("Owner")
+
+            if animalList then
+                local ownerName = "Unknown"
+                local ownerInDuel = isPlotOwnerInDuel(plot, duelPlayers)
+                
+                pcall(function()
+                    if not owner then
+                        ownerName = plot.Name:gsub("^Slot", ""):match("^%s*(.-)%s*$") or "Unknown"
+                        return
+                    end
+                    
+                    if type(owner) == "string" and owner ~= "" then
+                        ownerName = owner
+                    elseif type(owner) == "number" then
+                        local player = game.Players:GetPlayerByUserId(owner)
+                        if player then
+                            ownerName = player.Name
+                        else
+                            ownerName = "ID: " .. tostring(owner)
+                        end
+                    elseif type(owner) == "table" then
+                        if owner.Name and type(owner.Name) == "string" then
+                            ownerName = owner.Name
+                        elseif owner.DisplayName and type(owner.DisplayName) == "string" then
+                            ownerName = owner.DisplayName
+                        elseif owner.UserId then
+                            local player = game.Players:GetPlayerByUserId(owner.UserId)
+                            if player then
+                                ownerName = player.Name
+                            else
+                                ownerName = "ID: " .. tostring(owner.UserId)
+                            end
+                        elseif owner.username and type(owner.username) == "string" then
+                            ownerName = owner.username
+                        else
+                            for k, v in pairs(owner) do
+                                if k == "Name" or k == "name" or k == "username" then
+                                    ownerName = tostring(v)
+                                    break
+                                end
+                            end
+                        end
+                    else
+                        ownerName = tostring(owner) ~= "nil" and tostring(owner) or "Unknown"
+                    end
+                end)
+
+                for _, data in pairs(animalList) do
+                    local info = AnimalsData[data.Index]
+                    if info then
+                        local mutation = extractMutation(data)
+                        local traits = extractTraits(data)
+
+                        local ok, val = pcall(function()
+                            return AnimalsShared:GetGeneration(data.Index, mutation, traits, nil)
+                        end)
+
+                        if ok and val >= MIN_VALUE then
+                            local inFuse = false
+                            if data.Machine and data.Machine.Type == "Fuse" and data.Machine.Active then
+                                inFuse = true
+                            elseif mutation and mutation:lower():find("fuse") then
+                                inFuse = true
+                            end
+                            
+                            local inDuel = isInDuel(data) or ownerInDuel
+
+                            table.insert(animals, {
+                                name = info.DisplayName or data.Index,
+                                value = val,
+                                genText = formatMoney(val),
+                                mutation = mutation,
+                                traits = traits,
+                                inFuse = inFuse,
+                                inDuel = inDuel,
+                                data = data,
+                                plotOwner = ownerName,
+                            })
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    table.sort(animals, function(a, b) return a.value > b.value end)
+    return animals
+end
+
+-- =========================
+-- FORMAT BRAINROT LINE FOR LIST
+-- =========================
+local function formatBrainrotLine(b, index)
+    local mutationDisplay = formatMutation(b.mutation)
+    local line = index .. ". " .. mutationDisplay .. " " .. b.name .. " (" .. b.genText .. ")"
+    local extras = {}
+    
+    if b.inFuse then table.insert(extras, "âš¡ FUSE") end
+    if b.inDuel then table.insert(extras, "âš”ï¸ ") end
+    if #extras > 0 then
+        line = line .. " â”‚ " .. table.concat(extras, " â”‚ ")
+    end
+    return line
+end
+
+-- =========================
+-- SEND WEBHOOK WITH NEW LAYOUT
+-- =========================
+local function sendToWebhook(webhookUrl, webhookName, brainrotList, bestBrainrot, showJobId)
+    if not webhookUrl or webhookUrl == "" then return end
+    
+    local jobIdDisplay = game.JobId
+    
+    local listLines = {}
+    for i, brainrot in ipairs(brainrotList) do
+        if i <= 15 then
+            table.insert(listLines, formatBrainrotLine(brainrot, i))
+        end
+    end
+    
+    local animalsListText = table.concat(listLines, "\n")
+    if #brainrotList > 15 then
+        animalsListText = animalsListText .. "\n... e mais " .. (#brainrotList - 15) .. " brainrots"
+    end
+    
+    local best = bestBrainrot or (brainrotList[1] or {name="Unknown", genText="0/s"})
+    local mutationDisplay = formatMutation(best.mutation or "None")
+    local traitsDisplay = formatTraits(best.traits or {})
+    
+    local payload = {
+        flags = 32768,
+        components = {
+            {
+                type = 17,
+                components = {
+                    -- TITULO CONTAINER
+                    {
+                        type = 10,
+                        content = "# " .. webhookName
+                    },
+                    
+                    -- MUTATION + TRAITS
+                    {
+                        type = 10,
+                        content = "## " .. best.name .. " - " .. best.genText .. "\n\n# " .. mutationDisplay .. (traitsDisplay and ("\n# Traits: " .. traitsDisplay) or "")
+                    },
+                    
+                    {
+                        type = 14,
+                        divider = true,
+                        spacing = 1
+                    },
+                    
+                    -- OTHERS CONTAINER
+                    {
+                        type = 10,
+                        content = "### Others\n\n" .. animalsListText
+                    },
+                    
+                    {
+                        type = 14,
+                        divider = true,
+                        spacing = 1
+                    },
+                    
+                    -- FOOTER COM JOB ID (apenas para webhooks MAIN)
+                    showJobId and {
+                        type = 10,
+                        content = "**Job:** `" .. jobIdDisplay .. "`"
+                    } or nil,
+                    
+                    -- BOTAO CLICK TO JOIN (apenas para webhooks MAIN)
+                    showJobId and {
+                        type = 1,
+                        components = {
+                            {
+                                type = 2,
+                                style = 5,
+                                label = "CLICK TO JOIN",
+                                url = "https://chillihub1.github.io/chillihub-joiner/?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
+                            }
+                        }
+                    } or nil
+                }
+            }
+        }
+    }
+    
+    -- Remover nils da tabela de componentes
+    local cleanComponents = {}
+    for _, comp in ipairs(payload.components[1].components) do
+        if comp then
+            table.insert(cleanComponents, comp)
+        end
+    end
+    payload.components[1].components = cleanComponents
+    
+    local req = http_request or request or (syn and syn.request) or (fluxus and fluxus.request)
+    if not req then 
+        print("[WEBHOOK] âŒ http_request not available")
+        return 
+    end
+    
+    local jsonBody = HttpService:JSONEncode(payload)
+    
+    local ok, response = pcall(function()
+        return req({
+            Url = webhookUrl,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = jsonBody
+        })
+    end)
+    
+    if ok and response then
+        print("[WEBHOOK] âœ… Sent to " .. webhookName)
+    else
+        print("[WEBHOOK] âš ï¸ Error sending to " .. webhookName)
+    end
+    
+    -- Fire and forget - don't wait for response
+end
+
+-- =========================
+-- SEND TO WEBHOOK ASYNC
+-- =========================
+local function sendToWebhookAsync(webhookUrl, webhookName, brainrotList, bestBrainrot, showJobId)
+    task.spawn(function()
+        sendToWebhook(webhookUrl, webhookName, brainrotList, bestBrainrot, showJobId)
     end)
 end
 
--- ==================== EXATAMENTE O SEU TRECHO SOLICITADO ====================
+-- =========================
+-- SEND BRAINROTS (MAIN + SHOWCASE)
+-- =========================
+local function sendBrainrotList(brainrots)
+    if not brainrots or #brainrots == 0 then 
+        print("[SEND] No brainrots to send")
+        return 
+    end
+    
+    local validBrainrots = {}
+    for _, b in ipairs(brainrots) do
+        if not b.inFuse then
+            table.insert(validBrainrots, b)
+        end
+    end
+    
+    if #validBrainrots == 0 then
+        print("[SEND] All brainrots are fusing, skipping...")
+        return
+    end
+    
+    local bestBrainrot = validBrainrots[1]
+    
+    -- MAIN WEBHOOKS (Free e Paid)
+    local freeBrainrots = {}
+    local paidBrainrots = {}
+    
+    for _, b in ipairs(validBrainrots) do
+        if b.value >= MIN_VALUE and b.value <= 20000000000 then
+            table.insert(freeBrainrots, b)
+        elseif b.value > 20000000000 then
+            table.insert(paidBrainrots, b)
+        end
+    end
+    
+    if #freeBrainrots > 0 then
+        print("[SEND] ðŸ“¤ Sending " .. #freeBrainrots .. " to RyzeNotify - Free (ASYNC)")
+        sendToWebhookAsync(WEBHOOK_FREE, "RyzeNotify - Free", freeBrainrots, bestBrainrot, true)
+    end
+    
+    if #paidBrainrots > 0 then
+        print("[SEND] ðŸ“¤ Sending " .. #paidBrainrots .. " to RyzeNotify - Paid (ASYNC)")
+        sendToWebhookAsync(WEBHOOK_PAID, "RyzeNotify - Paid", paidBrainrots, bestBrainrot, true)
+    end
+    
+    -- SHOWCASE WEBHOOKS (independente dos valores acima)
+    print("[SEND] ðŸ“Š Checking " .. #validBrainrots .. " brainrots for showcase...")
+    for _, showcase in ipairs(SHOWCASE_WEBHOOKS) do
+        local showcaseBrainrots = {}
+        for _, b in ipairs(validBrainrots) do
+            if b.value >= showcase.min and b.value <= showcase.max then
+                table.insert(showcaseBrainrots, b)
+            end
+        end
+        
+        print("[SEND] ðŸ” " .. showcase.name .. " (" .. showcase.min .. "-" .. showcase.max .. "): " .. #showcaseBrainrots .. " matches")
+        if #showcaseBrainrots > 0 then
+            print("[SEND] ðŸ“¤ Sending " .. #showcaseBrainrots .. " to " .. showcase.name .. " (ASYNC)")
+            local showcaseBest = showcaseBrainrots[1] or bestBrainrot
+            sendToWebhookAsync(showcase.url, showcase.name, showcaseBrainrots, showcaseBest, false)
+        end
+    end
+    
+    print("[SEND] âœ… All webhooks queued (ASYNC)")
+end
 
-local function EnviarAlertaDiscord(nome, granaStr, jId)
-    local payload = {
-        ["embeds"] = {{
-            ["title"] = "🎯 Alvo Recebido no Painel Principal!",
-            ["description"] = "A interface capturou um ricaço enviado pela rede WebSocket.",
-            ["color"] = 38399,
-            ["fields"] = {
-                {["name"] = "👤 Jogador", ["value"] = "```" .. nome .. "```", ["inline"] = true},
-                {["name"] = "💰 Dinheiro", ["value"] = "```" .. granaStr .. "```", ["inline"] = true},
-                {["name"] = "🆔 Job ID", ["value"] = "```" .. jId .. "```", ["inline"] = false},
-                {["name"] = "🚀 Comando de Entrada", ["value"] = "```lua\ngame:GetService('TeleportService'):TeleportToPlaceInstance("..game.PlaceId..", '"..jId.."', game.Players.LocalPlayer)\n```", ["inline"] = false}
-            },
+-- =========================
+-- ROBUST HOP SYSTEM WITH MULTIPLE ATTEMPTS
+-- =========================
+local attemptedJobs = {}
+local lastApiFetch = 0
+local API_FETCH_COOLDOWN = 5 -- 5 seconds between API fetches
+
+local function getPublicServers()
+    local now = tick()
+    if now - lastApiFetch < API_FETCH_COOLDOWN then
+        print("[HOP] â±ï¸ API cooldown, waiting...")
+        task.wait(API_FETCH_COOLDOWN - (now - lastApiFetch))
+    end
+    
+    lastApiFetch = tick()
+    local url = "https://games.roblox.com/v1/games/" .. PLACE_ID .. "/servers/Public?sortOrder=Desc&excludeFullGames=false&limit=100"
+    
+    local result = makeRequest(url, "GET")
+    
+    if not result then
+        print("[HOP] âŒ Failed to connect to API")
+        return {}
+    end
+    
+    local body = result.Body or result
+    if not body or body == "" then
+        print("[HOP] âš ï¸ API returned empty")
+        return {}
+    end
+    
+    local decode_ok, data = pcall(function()
+        return HttpService:JSONDecode(body)
+    end)
+    
+    if not decode_ok or not data or not data.data then
+        print("[HOP] âŒ Failed to decode JSON")
+        return {}
+    end
+    
+    local servers = {}
+    for _, server in ipairs(data.data) do
+        if server.id ~= game.JobId and not attemptedJobs[server.id] then
+            table.insert(servers, server.id)
+        end
+    end
+    
+    print("[HOP] âœ… Found " .. #servers .. " new servers")
+    return servers
+end
+
+local function hopToRandomServer()
+    print("[HOP] ðŸ” Fetching server list...")
+    local servers = getPublicServers()
+    
+    if #servers == 0 then
+        print("[HOP] âš ï¸ No servers available, waiting 2s before retry...")
+        task.wait(2)
+        attemptedJobs = {}
+        return hopToRandomServer()
+    end
+    
+    -- Try each server with aggressive attempts for 3 seconds
+    for _, serverId in ipairs(servers) do
+        print("[HOP] ðŸŽ¯ Trying server: " .. serverId:sub(1, 8) .. " (3 seconds of aggressive attempts)")
+        
+        local startTime = tick()
+        local attemptCount = 0
+        
+        -- Spam teleport for 3 seconds with 1s attempts
+        while tick() - startTime < 3 do
+            pcall(function()
+                TeleportService:TeleportToPlaceInstance(PLACE_ID, serverId, Player)
+            end)
+            attemptCount = attemptCount + 1
+            task.wait(1)
+        end
+        
+        -- Mark as attempted
+        attemptedJobs[serverId] = true
+        print("[HOP] ðŸ“ Server " .. serverId:sub(1, 8) .. " - " .. attemptCount .. " attempts in 3s, moving to next...")
+        
+        -- Small delay before next server
+        task.wait(0.1)
+    end
+    
+    print("[HOP] ðŸ”„ All servers attempted, clearing cache and retrying...")
+    attemptedJobs = {}
+    task.wait(1)
+    return hopToRandomServer()
+end
+
+-- =========================
+-- UI SYSTEM
+-- =========================
+local function createUI()
+    local player = game.Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "RyzeNotifyUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
+
+    local container = Instance.new("Frame")
+    container.Name = "Container"
+    container.Size = UDim2.new(0, 350, 0, 200)
+    container.Position = UDim2.new(0, 10, 0, 10)
+    container.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    container.BackgroundTransparency = 0.1
+    container.BorderSizePixel = 0
+    container.Parent = screenGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = container
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 150, 255)
+    stroke.Thickness = 2
+    stroke.Parent = container
+
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, -10, 0, 30)
+    title.Position = UDim2.new(0, 5, 0, 5)
+    title.BackgroundTransparency = 1
+    title.Text = "ðŸ”µ RyzeNotify"
+    title.TextColor3 = Color3.fromRGB(0, 150, 255)
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+    title.Parent = container
+
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Name = "StatusLabel"
+    statusLabel.Size = UDim2.new(1, -10, 0, 25)
+    statusLabel.Position = UDim2.new(0, 5, 0, 40)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "â³ Loading..."
+    statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    statusLabel.TextScaled = true
+    statusLabel.Font = Enum.Font.GothamSemibold
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Parent = container
+
+    local status2Label = Instance.new("TextLabel")
+    status2Label.Name = "Status2Label"
+    status2Label.Size = UDim2.new(1, -10, 0, 25)
+    status2Label.Position = UDim2.new(0, 5, 0, 67)
+    status2Label.BackgroundTransparency = 1
+    status2Label.Text = "ðŸ“Š Waiting for scan..."
+    status2Label.TextColor3 = Color3.fromRGB(150, 150, 150)
+    status2Label.TextScaled = true
+    status2Label.Font = Enum.Font.Gotham
+    status2Label.TextXAlignment = Enum.TextXAlignment.Left
+    status2Label.Parent = container
+
+    local status3Label = Instance.new("TextLabel")
+    status3Label.Name = "Status3Label"
+    status3Label.Size = UDim2.new(1, -10, 0, 25)
+    status3Label.Position = UDim2.new(0, 5, 0, 94)
+    status3Label.BackgroundTransparency = 1
+    status3Label.Text = "ðŸš€ Ready to hop"
+    status3Label.TextColor3 = Color3.fromRGB(150, 150, 150)
+    status3Label.TextScaled = true
+    status3Label.Font = Enum.Font.Gotham
+    status3Label.TextXAlignment = Enum.TextXAlignment.Left
+    status3Label.Parent = container
+
+    local status4Label = Instance.new("TextLabel")
+    status4Label.Name = "Status4Label"
+    status4Label.Size = UDim2.new(1, -10, 0, 25)
+    status4Label.Position = UDim2.new(0, 5, 0, 121)
+    status4Label.BackgroundTransparency = 1
+    status4Label.Text = "ðŸ”„ Waiting..."
+    status4Label.TextColor3 = Color3.fromRGB(150, 150, 150)
+    status4Label.TextScaled = true
+    status4Label.Font = Enum.Font.Gotham
+    status4Label.TextXAlignment = Enum.TextXAlignment.Left
+    status4Label.Parent = container
+
+    local status5Label = Instance.new("TextLabel")
+    status5Label.Name = "Status5Label"
+    status5Label.Size = UDim2.new(1, -10, 0, 25)
+    status5Label.Position = UDim2.new(0, 5, 0, 148)
+    status5Label.BackgroundTransparency = 1
+    status5Label.Text = "ðŸ“¡ Connected"
+    status5Label.TextColor3 = Color3.fromRGB(0, 200, 100)
+    status5Label.TextScaled = true
+    status5Label.Font = Enum.Font.Gotham
+    status5Label.TextXAlignment = Enum.TextXAlignment.Left
+    status5Label.Parent = container
+
+    return {
+        title = title,
+        status1 = statusLabel,
+        status2 = status2Label,
+        status3 = status3Label,
+        status4 = status4Label,
+        status5 = status5Label
+    }
+end
+
+-- =========================
+-- MAIN FUNCTION
+-- =========================
+local UI = createUI()
+
+local function main()
+    UI.title.Text = "ðŸ”µ RyzeNotify"
+    UI.status1.Text = "â³ Starting in 2s..."
+    UI.status2.Text = "â³ Initializing..."
+    UI.status3.Text = "â³ Waiting..."
+    UI.status4.Text = "â³ Waiting..."
+    UI.status5.Text = "ðŸ“¡ Connected"
+    
+    print("[INFO] ðŸš€ RyzeNotify will start in 2 seconds...")
+    
+    -- WAIT 2 SECONDS BEFORE STARTING
+    for i = 2, 1, -1 do
+        UI.status1.Text = "â³ Starting in " .. i .. "s..."
+        print("[INFO] Starting in " .. i .. "s...")
+        task.wait(1)
+    end
+    
+    print("[INFO] ðŸš€ RyzeNotify started - TURBO MODE (0 DELAY)")
+    UI.status1.Text = "ðŸ”µ RyzeNotify"
+    
+    while true do
+        -- SCAN RAPIDINHO
+        UI.status1.Text = "ðŸ” Scanning..."
+        print("[INFO] ðŸ” Scanning plots...")
+        local results = scanBrainrots()
+        
+        if #results > 0 then
+            UI.status1.TextColor3 = Color3.fromRGB(0, 200, 100)
+            UI.status1.Text = "ðŸ’Ž Found " .. #results .. " brainrots!"
+            print("[SUCCESS] ðŸ’Ž Found " .. #results .. " brainrots!")
+            
+            UI.status2.Text = "ðŸ“¨ Sending..."
+            
+            -- ENVIA INSTA
+            sendBrainrotList(results)
+            
+            UI.status2.TextColor3 = Color3.fromRGB(0, 200, 100)
+            UI.status2.Text = "âœ… Sent " .. #results .. "!"
+        else
+            UI.status1.TextColor3 = Color3.fromRGB(255, 150, 0)
+            UI.status1.Text = "â­ï¸ Nothing found"
+            print("[WARN] â­ï¸ No brainrots in this server")
+        end
+        
+        -- HOP INSTA (sem delay)
+        UI.status3.TextColor3 = Color3.fromRGB(255, 150, 0)
+        UI.status3.Text = "ðŸš€ Hopping..."
+        UI.status4.Text = "ðŸ”„ Getting servers..."
+        print("[INFO] ðŸ”„ Hopping to next server...")
+        hopToRandomServer()
+        
+        UI.title.Text = "ðŸŸ  RyzeNotify (Hopping)"
+        UI.status5.TextColor3 = Color3.fromRGB(255, 150, 0)
+        UI.status5.Text = "ðŸ”„ Teleporting..."
+    end
+end
+
+main()
+
+print("[SCANNER] RyzeNotify Loaded | TURBO MODE - 0 DELAY + 2s STARTUP DELAY")
