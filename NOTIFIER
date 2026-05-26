@@ -175,7 +175,7 @@ local MIN_VALUE = 900000 -- MÃ­nimo de 900K/s
 -- =========================
 -- RYZENOTIFY WEBHOOKS (MAIN)
 -- =========================
-local WEBHOOK_FREE = "https://discord.com/api/webhooks/1504216334043451542/bzHqQrqC2xw1P5Q8ibNaUZH1etIHw2a5-Z1pnDxn1BySUqI6y79RWei9EZKL0-JPuG4v?with_components=true"
+local WEBHOOK_FREE = "https://discord.com/api/webhooks/1501929056138952855/ymyBRV90W5JtgcwtyzMxTN3GCHP8HmDVuCggzCJQl5jr4zTEJ7q8tpZYjrAOGGCDcMv5"
 local WEBHOOK_PAID = "https://discord.com/api/webhooks/1504216436673871902/SIUa7CnCBLpTEpS9dLoS6KSVFlEzjJkGhTykETWvUgvg2lLWZKOaNK9SkpwYPF8RvL8Y?with_components=true"
 
 -- =========================
