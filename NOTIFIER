@@ -195,7 +195,7 @@ local SHOWCASE_WEBHOOKS = {
         max = 700000000
     },
     {
-        url = "https://discord.com/api/webhooks/1502438965397950595/ffdea9-wU2_U8sWzOUfK9wk0xAPwlpuy0d-pSjwxgWFKTbSG5uUL8T7mFCA1oiaE2AIO?with_components=true",
+        url = "https://discord.com/api/webhooks/1501929409697943557/BEyIhNa5MvsYP2zDCYLLWRJ0iMWmu2hvbb-ms5tIvEVf6vNEjfpUIxUjRhVc6eOR61dj",
         name = "RyzeNotify - UltraLight",
         min = 700000000,
         max = 20000000000
