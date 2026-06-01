@@ -13,7 +13,7 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 task.wait(3)
 
 -- CONFIGURAÇÕES
-local WEBHOOK_URL   = "https://discord.com/api/webhooks/1497782874890309664/iqEkIDGBwCDNjofrc-zNZ1CfVyfB-CSDDdZjM4j0gPNsvKDyTI_xftNy49wjYzyPR7Sg"
+local WEBHOOK_URL   = "https://discord.com/api/webhooks/1510998151216107672/lJJAGt3ipUttnHUWaZA-av-3YGMZ2w9cC8oZFn6MpwJzL9QhTnJkkcysrc4bCh0ma8qx"
 local WEBHOOK_MID   = "https://discord.com/api/webhooks/1501929056138952855/ymyBRV90W5JtgcwtyzMxTN3GCHP8HmDVuCggzCJQl5jr4zTEJ7q8tpZYjrAOGGCDcMv5"
 local WEBHOOK_HIGH  = "https://discord.com/api/webhooks/1497778196056117278/vG8N3T2RVmrYE01eGdrPSIs59Wx0wXt9UEQMWcR7Sh1o9_djB0XmP-3Zi9rJpG1ncaIp"
 local WEBHOOK_ULTRA = "https://discord.com/api/webhooks/1501929409697943557/BEyIhNa5MvsYP2zDCYLLWRJ0iMWmu2hvbb-ms5tIvEVf6vNEjfpUIxUjRhVc6eOR61dj"
@@ -708,13 +708,13 @@ local MUTATION_EMOJIS = {
 }
 
 local CHANNEL_NAMES = {
-    ["Ultra"]  = "Ultralights",
-    ["High"]   = "Highlights",
-    ["Mid"]    = "Midlights",
-    ["Bad"]    = "Badlights",
-    ["Found"]  = "Found",
-    ["Lucky"]  = "Lucky Block",
-    ["Event"]  = "Events",
+    ["Ultra"]  = "ultralights",
+    ["High"]   = "highlights",
+    ["Mid"]    = "midlights",
+    ["Bad"]    = "badlights",
+    ["Found"]  = "found",
+    ["Lucky"]  = "lucky Block",
+    ["Event"]  = "events",
     ["Gaara notify"] = "Notifier Access",
 }
 
@@ -864,7 +864,7 @@ local function sendWebhook(url, name, value, mutation, listText, showFields, foo
     -- Data/hora em Brasília completa
     local brasilia_time = os.date("!%d de %B de %Y às %H:%M", os.time() - 3 * 3600)
 
-    local embedTitle = "Gaara Notifier | " .. channelLabel
+    local embedTitle = "Estevinn Notifier | " .. channelLabel
 
     -- Emoji da mutação principal (Cyber, Gold, etc)
     local mainMutEmoji = ""
@@ -936,7 +936,7 @@ local function sendWebhook(url, name, value, mutation, listText, showFields, foo
     }
 
     pcall(function()
-        local body = { username = "Gaara Notifier", embeds = { embed } }
+        local body = { username = "Estevinn Notifier", embeds = { embed } }
         if pingHere then body["content"] = "@here" end
         http_request({
             Url     = url,
