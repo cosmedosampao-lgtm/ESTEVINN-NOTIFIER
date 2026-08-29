@@ -16,7 +16,7 @@ task.wait(3)
 local WEBHOOK_URL   = "https://discord.com/api/webhooks/1510998151216107672/lJJAGt3ipUttnHUWaZA-av-3YGMZ2w9cC8oZFn6MpwJzL9QhTnJkkcysrc4bCh0ma8qx"
 local WEBHOOK_MID   = "https://discord.com/api/webhooks/1501929056138952855/ymyBRV90W5JtgcwtyzMxTN3GCHP8HmDVuCggzCJQl5jr4zTEJ7q8tpZYjrAOGGCDcMv5"
 local WEBHOOK_HIGH  = "https://discord.com/api/webhooks/1497778196056117278/vG8N3T2RVmrYE01eGdrPSIs59Wx0wXt9UEQMWcR7Sh1o9_djB0XmP-3Zi9rJpG1ncaIp"
-local WEBHOOK_ULTRA = "https://discord.com/api/webhooks/1501929409697943557/BEyIhNa5MvsYP2zDCYLLWRJ0iMWmu2hvbb-ms5tIvEVf6vNEjfpUIxUjRhVc6eOR61dj"
+local WEBHOOK_ULTRA = "https://discord.com/api/webhooks/1543302734604931244/0Q2wu6nRxpWbpE-6HfvdsNgsbxTwBX1YIWumT_sz2cx0NOJkZh-F3BOtHjOB1br7ES3v"
 local WEBHOOK_FOUND = "https://discord.com/api/webhooks/1499479674835964085/JQKmDanfIMqwpmD_hJaCaFKfbpgfYep7h36OFn7NvtL37-bUj7hqWp0ijsoJ698o4iW5"
 local WEBHOOK_LUCKY = "https://discord.com/api/webhooks/1499522287244804097/AqvKdlE6cMpmAhjB09clY6OT4Frbv5vmk3iIlm6JbSzLhIDof0N7Br5cAnKCTV_a_GX-"
 local WEBHOOK_EVENT = "https://discord.com/api/webhooks/1499522427108065416/wbTB2sYUOXdcl-8JeFlQd_pCgKbJ2ZhzDBexqtdrErZwLvaw1krUIFYEOJCV0bGkIOJs"
