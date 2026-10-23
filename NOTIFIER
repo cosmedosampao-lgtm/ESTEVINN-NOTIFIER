@@ -1,1104 +1,503 @@
-local Players         = game:GetService("Players")
-local Workspace       = game:GetService("Workspace")
-local HttpService     = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-local RS              = game:GetService("ReplicatedStorage")
-local vim             = game:GetService("VirtualInputManager")
-
-vim:SendKeyEvent(true, Enum.KeyCode.F9, false, game)
-task.wait()
-vim:SendKeyEvent(false, Enum.KeyCode.F9, false, game)
-
-if not game:IsLoaded() then game.Loaded:Wait() end
-task.wait(3)
-
--- CONFIGURAÇÕES
-local WEBHOOK_URL   = "https://discord.com/api/webhooks/1510998151216107672/lJJAGt3ipUttnHUWaZA-av-3YGMZ2w9cC8oZFn6MpwJzL9QhTnJkkcysrc4bCh0ma8qx"
-local WEBHOOK_MID   = "https://discord.com/api/webhooks/1501929056138952855/ymyBRV90W5JtgcwtyzMxTN3GCHP8HmDVuCggzCJQl5jr4zTEJ7q8tpZYjrAOGGCDcMv5"
-local WEBHOOK_HIGH  = "https://discord.com/api/webhooks/1497778196056117278/vG8N3T2RVmrYE01eGdrPSIs59Wx0wXt9UEQMWcR7Sh1o9_djB0XmP-3Zi9rJpG1ncaIp"
-local WEBHOOK_ULTRA = "https://discord.com/api/webhooks/1543302734604931244/0Q2wu6nRxpWbpE-6HfvdsNgsbxTwBX1YIWumT_sz2cx0NOJkZh-F3BOtHjOB1br7ES3v"
-local WEBHOOK_FOUND = "https://discord.com/api/webhooks/1499479674835964085/JQKmDanfIMqwpmD_hJaCaFKfbpgfYep7h36OFn7NvtL37-bUj7hqWp0ijsoJ698o4iW5"
-local WEBHOOK_LUCKY = "https://discord.com/api/webhooks/1499522287244804097/AqvKdlE6cMpmAhjB09clY6OT4Frbv5vmk3iIlm6JbSzLhIDof0N7Br5cAnKCTV_a_GX-"
-local WEBHOOK_EVENT = "https://discord.com/api/webhooks/1499522427108065416/wbTB2sYUOXdcl-8JeFlQd_pCgKbJ2ZhzDBexqtdrErZwLvaw1krUIFYEOJCV0bGkIOJs"
-local WEBHOOK_BAD   = "https://discord.com/api/webhooks/1499522982337577024/_ipXxeb2DDFos2vunVChd3LHxD5uk8ilXY8-lImxwb9pNrVYYy5e-MvkH_1yCf3KpbQ-"
-local FIREBASE_URL  = "https://notifierestevinn-default-rtdb.firebaseio.com/"
-
-local TARGET_NAMES    = {""}
-local ULTRA_BRAINROTS = {
-    "Dragão Canelloni",
-    "Skibidi Toilet",
-    "Meowl",
-    "Arcadragon Antônio",
-    "Elefante Frigo",
-    "Gym Bros",
-    "Tiririkalikalo",
-    "Hydra Dragon Canelloni",
-    "Cokie And Milki",
-    "Fortunu And Cashuru",
-    "Spooky And Pumpky",
-    "Hydra Bunny",
-    "Griffin",
-    "Cash Or Card",
-    "Strawberry Elephant",
-    "La Supreme Combinação",
-    "Reinito Sleito",
-    "Ketupat Bros",
-    "Kalika Bros",
-    "Duggy Duggy Bros",
-    "Foxini Lanternini",
-    "La Casa Boo",
-    "La Food Combinasion",
-    -- OGs
-    "Headless Horseman",
-    -- Secret
-    "Dragon Gingerini",
-    "Signore Carapace",
-}
-
--- Brainrots que apitam no HIGH a partir de 50M
-local HIGH_BRAINROTS  = {
-    "Garama",
-    "Burguro",
-    "Capitano",
-    "Cash Or Card",
-    "Guest 666",
-    "John Doe",
-    "Los Hotspotsitos",
-    "Celularcini Viciosini",
-    "Gym Bros",
-    "Jolly Jolly Sahur",
-    "Money Money Bros",
-    "Hopilikalikako",
-    "Festive 67",
-    "Duggy Duggy Bros",
-    "Los Primos",
-    "Los Mariachis",
-    "Lovin Rose",
-    "Ginger Gerat",
-    "Los Chillin",
-    "Los Hackers",
-    "Spooky And Pumpky",
-    "Boppin Bunny",
-    "Kalika Bros",
-    "Fortunu And Cashuru",
-    "Popuru And Fizzuru",
-    "Digi Narwhal",
-    "La Secret Combinasion",
-    "Los Sekolahs",
-}
-
--- Brainrots de evento (ritual/admin) que apitam no canal Event
-local EVENT_BRAINROTS = {
-    "Dul Dul Dul",
-    "Guerriro Digitale",
-    "Orcalero Orcala",
-    "La Vacca Saturno Saturnita",
-    "1x1x1x1",
-    "Sammyni Spyderini",
-    "Matteooooooooooooooo",
-    "Chicleteira Bicicleteira",
-    "Bombardiro Crocodilo",
-}
-
-local BLACK_NAMES     = {"Fishboard", ""}
-
--- Brainrots que apitam no canal Found (raridades Brainrot God)
-local GOD_BRAINROTS = {
-    "Tob Tobi Tobi",
-    "Ganganzelli Trulala",
-    "Brutto Gialutto",
-    "Centrucci Nuclucci",
-    "Rhino Helicopterino",
-    "Trenostruzzo Turbo 4000",
-    "Ginger Cisterna",
-    "Las Capuchinas",
-    "Avocadorilla",
-    "Fragola La La La",
-    "Doi Doi Do",
-    "Pineaplino",
-    "Racooni Jandelini",
-    "Raccooni Jandelini",
-    "Fishino Clownino",
-    "Gobblino Uniciclino",
-    "Stoppo Luminino",
-    "Unclito Samito",
-}
-
--- Lucky Blocks que apitam no canal Lucky (todas menos Mythic e Brainrot God)
-local LUCKY_BLOCKS = {
-    "Lucky Block",
-    "Admin Lucky Block",
-    "Los Lucky Blocks",
-    "Taco Lucky Block",
-    "Los Taco Blocks",
-    "Spooky Lucky Block",
-    "Festive Lucky Block",
-    "Heart Lucky Block",
-    "Leprechaun Lucky Block",
-    "Egg Lucky Block",
-    "Hydra Bunny Lucky Block",
-    "Hopilikalikako Lucky Block",
-    "Hopilikalika Hopilikalako Lucky Block",
-}
-
-local MIN_VALUE     = 10000000
-local NOTIFIER_NAME = "gaaara"
-local CURRENT_JOB   = tostring(game.JobId)
-local PLACE_ID      = game.PlaceId
-local EMBED_COLOR   = 2370601
-
+-- ⚽ CR7 HUB || Matheus 
+-- Todos os créditos: Matheus
+---------------------------------------------------------
+-- Serviços Básicos
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
-print("Players: " .. tostring(#Players:GetPlayers()))
+-- Variáveis Globais
+local ReachDistance = 1
+local AutoBallEnabled = false
+local BodyVel = nil
+local Minimized = false
 
-local http_request = http_request or (syn and syn.request) or (http and http.request) or request
+---------------------------------------------------------
+-- TELA DE CARREGAMENTO ANIMADA (5-10s)
+---------------------------------------------------------
+local function CreateLoadingScreen()
+    local LoadingGui = Instance.new("ScreenGui")
+    LoadingGui.Name = "CR7_Loading"
+    LoadingGui.ResetOnSpawn = false
+    LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    LoadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- =========================
--- MOTOR DE HOP EXTRAÍDO (QLTZ)
--- =========================
-local function hop(label)
-    print("🚀 Iniciando Hop: " .. (label or "Scan"))
+    local Background = Instance.new("Frame")
+    Background.Size = UDim2.new(1, 0, 1, 0)
+    Background.BackgroundColor3 = Color3.fromRGB(8, 8, 12)
+    Background.Parent = LoadingGui
 
-    local function doHop()
-        local servers = {}
-        local req = game:HttpGet("https://games.roblox.com/v1/games/" .. PLACE_ID .. "/servers/Public?sortOrder=Asc&limit=100")
-        if req then
-            local data = HttpService:JSONDecode(req)
-            if data and data.data then
-                for _, v in ipairs(data.data) do
-                    if type(v) == "table" and v.playing < v.maxPlayers and v.id ~= game.JobId then
-                        table.insert(servers, v.id)
-                    end
-                end
-            end
-        end
-        if #servers > 0 then
-            local target = servers[math.random(1, #servers)]
-            TeleportService:TeleportToPlaceInstance(PLACE_ID, target, LocalPlayer)
-        end
-    end
+    local Gradient = Instance.new("UIGradient")
+    Gradient.Rotation = 45
+    Gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(45, 35, 25)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 35))
+    }
+    Gradient.Parent = Background
 
+    local TitleContainer = Instance.new("Frame")
+    TitleContainer.Size = UDim2.new(1, 0, 0, 100)
+    TitleContainer.Position = UDim2.new(0, 0, 0.35, -50)
+    TitleContainer.BackgroundTransparency = 1
+    TitleContainer.Parent = Background
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, 0, 0, 80)
+    Title.BackgroundTransparency = 1
+    Title.Text = "⚽ CR7 HUB"
+    Title.TextColor3 = Color3.fromRGB(255, 215, 0)
+    Title.Font = Enum.Font.FredokaOne
+    Title.TextSize = 55
+    Title.TextTransparency = 1
+    Title.Parent = TitleContainer
+
+    local SubTitle = Instance.new("TextLabel")
+    SubTitle.Size = UDim2.new(1, 0, 0, 30)
+    SubTitle.Position = UDim2.new(0, 0, 0, 70)
+    SubTitle.BackgroundTransparency = 1
+    SubTitle.Text = "Carregando... by Matheus"
+    SubTitle.TextColor3 = Color3.fromRGB(200, 180, 80)
+    SubTitle.Font = Enum.Font.SourceSansItalic
+    SubTitle.TextSize = 18
+    SubTitle.TextTransparency = 1
+    SubTitle.Parent = TitleContainer
+
+    local BarContainer = Instance.new("Frame")
+    BarContainer.Size = UDim2.new(0, 320, 0, 20)
+    BarContainer.Position = UDim2.new(0.5, -160, 0.55, -10)
+    BarContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    BarContainer.BorderSizePixel = 0
+    BarContainer.Parent = Background
+    Instance.new("UICorner", BarContainer).CornerRadius = UDim.new(0, 10)
+
+    local BarFill = Instance.new("Frame")
+    BarFill.Size = UDim2.new(0, 0, 1, 0)
+    BarFill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    BarFill.Parent = BarContainer
+    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(0, 10)
+
+    local BarGradient = Instance.new("UIGradient")
+    BarGradient.Rotation = 0
+    BarGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 180, 0)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 220, 0)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 180, 0))
+    }
+    BarGradient.Parent = BarFill
+
+    local PercentText = Instance.new("TextLabel")
+    PercentText.Size = UDim2.new(0, 60, 0, 25)
+    PercentText.Position = UDim2.new(0.5, -30, 0.62, 0)
+    PercentText.BackgroundTransparency = 1
+    PercentText.Text = "0%"
+    PercentText.TextColor3 = Color3.fromRGB(255, 215, 0)
+    PercentText.Font = Enum.Font.GothamBold
+    PercentText.TextSize = 14
+    PercentText.Parent = Background
+
+    -- Animação de entrada
+    TweenService:Create(Title, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+    TweenService:Create(SubTitle, TweenInfo.new(1.0, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
+
+    -- Animação da barra (8 segundos)
     task.spawn(function()
-        while true do
-            pcall(doHop)
-            task.wait(1.5)
+        local duration = 8
+        local steps = 50
+        for i = 1, steps do
+            local progress = i / steps
+            BarFill.Size = UDim2.new(progress, 0, 1, 0)
+            PercentText.Text = tostring(math.floor(progress * 100)) .. "%"
+            task.wait(duration / steps)
         end
+        BarFill.Size = UDim2.new(1, 0, 1, 0)
+        PercentText.Text = "100%"
+        task.wait(0.5)
+
+        -- Fade out
+        TweenService:Create(Background, TweenInfo.new(0.8, Enum.EasingStyle.Quad), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(Title, TweenInfo.new(0.6), {TextTransparency = 1}):Play()
+        TweenService:Create(SubTitle, TweenInfo.new(0.6), {TextTransparency = 1}):Play()
+        task.wait(0.9)
+        LoadingGui:Destroy()
     end)
+
+    return LoadingGui
 end
 
--- Re-tentar se o teleporte falhar
-TeleportService.TeleportInitFailed:Connect(function()
-    hop("Retry")
+-- Inicia tela de carregamento
+CreateLoadingScreen()
+task.wait(9.5) -- Espera a animação terminar
+
+---------------------------------------------------------
+-- INTERFACE PRINCIPAL (CR7 HUB || Matheus)
+---------------------------------------------------------
+local ParentGui = gethui and gethui() or LocalPlayer:WaitForChild("PlayerGui")
+
+if ParentGui:FindFirstChild("CR7MainGui") then
+   ParentGui.CR7MainGui:Destroy()
+end
+
+local MainGui = Instance.new("ScreenGui")
+MainGui.Name = "CR7MainGui"
+MainGui.ResetOnSpawn = false
+MainGui.Parent = ParentGui
+
+-- BOLINHA MINIMIZADA (invisível no início)
+local MiniBola = Instance.new("TextButton")
+MiniBola.Size = UDim2.new(0, 50, 0, 50)
+MiniBola.Position = UDim2.new(0.02, 0, 0.02, 0)
+MiniBola.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+MiniBola.Text = "CR7"
+MiniBola.TextColor3 = Color3.fromRGB(0, 0, 0)
+MiniBola.Font = Enum.Font.GothamBold
+MiniBola.TextSize = 11
+MiniBola.Active = true
+MiniBola.Draggable = true
+MiniBola.Visible = false
+MiniBola.Parent = MainGui
+Instance.new("UICorner", MiniBola).CornerRadius = UDim.new(1, 0)
+
+local MiniStroke = Instance.new("UIStroke")
+MiniStroke.Color = Color3.fromRGB(255, 255, 255)
+MiniStroke.Thickness = 2
+MiniStroke.Parent = MiniBola
+
+-- JANELA PRINCIPAL
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 220, 0, 180)
+Frame.Position = UDim2.new(0.05, 0, 0.3, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = MainGui
+
+local FrameCorner = Instance.new("UICorner")
+FrameCorner.CornerRadius = UDim.new(0, 8)
+FrameCorner.Parent = Frame
+
+local FrameStroke = Instance.new("UIStroke")
+FrameStroke.Color = Color3.fromRGB(255, 215, 0)
+FrameStroke.Thickness = 2
+FrameStroke.Parent = Frame
+
+-- CABEÇALHO COM - e X
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 30)
+Header.BackgroundTransparency = 1
+Header.Parent = Frame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -60, 0, 30)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "⚽ CR7 HUB"
+Title.TextColor3 = Color3.fromRGB(255, 215, 0)
+Title.Font = Enum.Font.FredokaOne
+Title.TextSize = 16
+Title.Parent = Header
+
+local Credit = Instance.new("TextLabel")
+Credit.Size = UDim2.new(1, 0, 0, 18)
+Credit.Position = UDim2.new(0, 0, 0, 28)
+Credit.BackgroundTransparency = 1
+Credit.Text = "by Matheus"
+Credit.TextColor3 = Color3.fromRGB(180, 180, 180)
+Credit.Font = Enum.Font.SourceSansItalic
+Credit.TextSize = 12
+Credit.Parent = Frame
+
+local BtnMinimize = Instance.new("TextButton")
+BtnMinimize.Size = UDim2.new(0, 25, 0, 25)
+BtnMinimize.Position = UDim2.new(1, -55, 0, 2)
+BtnMinimize.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+BtnMinimize.Text = "-"
+BtnMinimize.TextColor3 = Color3.fromRGB(255, 215, 0)
+BtnMinimize.Font = Enum.Font.GothamBold
+BtnMinimize.TextSize = 16
+BtnMinimize.Parent = Header
+Instance.new("UICorner", BtnMinimize).CornerRadius = UDim.new(0, 5)
+
+local BtnClose = Instance.new("TextButton")
+BtnClose.Size = UDim2.new(0, 25, 0, 25)
+BtnClose.Position = UDim2.new(1, -27, 0, 2)
+BtnClose.BackgroundColor3 = Color3.fromRGB(70, 20, 20)
+BtnClose.Text = "X"
+BtnClose.TextColor3 = Color3.fromRGB(255, 80, 80)
+BtnClose.Font = Enum.Font.GothamBold
+BtnClose.TextSize = 14
+BtnClose.Parent = Header
+Instance.new("UICorner", BtnClose).CornerRadius = UDim.new(0, 5)
+
+-- BOTÃO SEGUIR BOLA
+local FloatingBtn = Instance.new("TextButton")
+FloatingBtn.Size = UDim2.new(0, 180, 0, 45)
+FloatingBtn.Position = UDim2.new(0.5, -90, 0, 50)
+FloatingBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+FloatingBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
+FloatingBtn.Text = "SEGUIR BOLA:\nDESLIGADO"
+FloatingBtn.Font = Enum.Font.FredokaOne
+FloatingBtn.TextSize = 14
+FloatingBtn.Parent = Frame
+Instance.new("UICorner", FloatingBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UIStroke", FloatingBtn).Color = Color3.fromRGB(255, 215, 0)
+
+-- CONTROLE REACH
+local ReachLabel = Instance.new("TextLabel")
+ReachLabel.Size = UDim2.new(1, -20, 0, 20)
+ReachLabel.Position = UDim2.new(0, 10, 0, 105)
+ReachLabel.BackgroundTransparency = 1
+ReachLabel.Text = "Alcance Reach: 1 Studs"
+ReachLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+ReachLabel.Font = Enum.Font.SourceSansBold
+ReachLabel.TextSize = 14
+ReachLabel.Parent = Frame
+
+local PlusBtn = Instance.new("TextButton")
+PlusBtn.Size = UDim2.new(0, 85, 0, 30)
+PlusBtn.Position = UDim2.new(0, 15, 0, 135)
+PlusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+PlusBtn.Text = "+ REACH"
+PlusBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
+PlusBtn.Font = Enum.Font.SourceSansBold
+PlusBtn.Parent = Frame
+Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 5)
+
+local MinusBtn = Instance.new("TextButton")
+MinusBtn.Size = UDim2.new(0, 85, 0, 30)
+MinusBtn.Position = UDim2.new(0, 115, 0, 135)
+MinusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MinusBtn.Text = "- REACH"
+MinusBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
+MinusBtn.Font = Enum.Font.SourceSansBold
+MinusBtn.Parent = Frame
+Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 5)
+
+-- JANELA DE CONFIRMAÇÃO EXCLUIR
+local ConfirmGui = Instance.new("ScreenGui")
+ConfirmGui.Name = "CR7_Confirm"
+ConfirmGui.ResetOnSpawn = false
+ConfirmGui.Enabled = false
+ConfirmGui.Parent = ParentGui
+
+local ConfirmFrame = Instance.new("Frame")
+ConfirmFrame.Size = UDim2.new(0, 280, 0, 140)
+ConfirmFrame.Position = UDim2.new(0.5, -140, 0.5, -70)
+ConfirmFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+ConfirmFrame.BorderSizePixel = 0
+ConfirmFrame.Active = true
+ConfirmFrame.Draggable = true
+ConfirmFrame.Parent = ConfirmGui
+Instance.new("UICorner", ConfirmFrame).CornerRadius = UDim.new(0, 12)
+local ConfirmStroke = Instance.new("UIStroke")
+ConfirmStroke.Color = Color3.fromRGB(255, 215, 0)
+ConfirmStroke.Thickness = 2
+ConfirmStroke.Parent = ConfirmFrame
+
+local ConfirmTitle = Instance.new("TextLabel")
+ConfirmTitle.Size = UDim2.new(1, 0, 0, 40)
+ConfirmTitle.BackgroundTransparency = 1
+ConfirmTitle.Text = "⚠️ Tem certeza?"
+ConfirmTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+ConfirmTitle.Font = Enum.Font.GothamBold
+ConfirmTitle.TextSize = 18
+ConfirmTitle.Parent = ConfirmFrame
+
+local ConfirmText = Instance.new("TextLabel")
+ConfirmText.Size = UDim2.new(1, -20, 0, 30)
+ConfirmText.Position = UDim2.new(0, 10, 0, 45)
+ConfirmText.BackgroundTransparency = 1
+ConfirmText.Text = "Quer excluir o script?"
+ConfirmText.TextColor3 = Color3.fromRGB(220, 220, 220)
+ConfirmText.Font = Enum.Font.GothamMedium
+ConfirmText.TextSize = 14
+ConfirmText.Parent = ConfirmFrame
+
+local BtnSim = Instance.new("TextButton")
+BtnSim.Size = UDim2.new(0, 110, 0, 35)
+BtnSim.Position = UDim2.new(0, 20, 0, 90)
+BtnSim.BackgroundColor3 = Color3.fromRGB(30, 140, 60)
+BtnSim.Text = "✅ Sim"
+BtnSim.TextColor3 = Color3.new(1,1,1)
+BtnSim.Font = Enum.Font.GothamBold
+BtnSim.Parent = ConfirmFrame
+Instance.new("UICorner", BtnSim).CornerRadius = UDim.new(0, 8)
+
+local BtnNao = Instance.new("TextButton")
+BtnNao.Size = UDim2.new(0, 110, 0, 35)
+BtnNao.Position = UDim2.new(1, -130, 0, 90)
+BtnNao.BackgroundColor3 = Color3.fromRGB(140, 30, 30)
+BtnNao.Text = "❌ Não"
+BtnNao.TextColor3 = Color3.new(1,1,1)
+BtnNao.Font = Enum.Font.GothamBold
+BtnNao.Parent = ConfirmFrame
+Instance.new("UICorner", BtnNao).CornerRadius = UDim.new(0, 8)
+
+---------------------------------------------------------
+-- FUNÇÕES DE MINIMIZAR / RESTAURAR
+---------------------------------------------------------
+local function Minimizar()
+    Minimized = true
+    TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Transparency = 1}):Play()
+    Frame.Visible = false
+    MiniBola.Visible = true
+end
+
+local function Restaurar()
+    Minimized = false
+    MiniBola.Visible = false
+    Frame.Visible = true
+    TweenService:Create(Frame, TweenInfo.new(0.3), {Transparency = 0}):Play()
+end
+
+---------------------------------------------------------
+-- ATIVAÇÕES
+---------------------------------------------------------
+local function ToggleAutoBall()
+   AutoBallEnabled = not AutoBallEnabled
+   if AutoBallEnabled then
+      FloatingBtn.Text = "SEGUIR BOLA:\nLIGADO ✅"
+      FloatingBtn.TextColor3 = Color3.fromRGB(50, 255, 50)
+   else
+      FloatingBtn.Text = "SEGUIR BOLA:\nDESLIGADO"
+      FloatingBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
+      if BodyVel then
+         BodyVel:Destroy()
+         BodyVel = nil
+      end
+   end
+end
+
+FloatingBtn.MouseButton1Click:Connect(ToggleAutoBall)
+
+-- Botão - Minimizar
+BtnMinimize.MouseButton1Click:Connect(Minimizar)
+
+-- Clicar na bolinha = Restaurar
+MiniBola.MouseButton1Click:Connect(Restaurar)
+
+-- Botão X = Confirmar exclusão
+BtnClose.MouseButton1Click:Connect(function()
+    ConfirmGui.Enabled = true
+    ConfirmFrame.BackgroundTransparency = 1
+    TweenService:Create(ConfirmFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back), {BackgroundTransparency = 0}):Play()
 end)
 
--- LOAD MODULES
-local Synchronizer  = nil
-local AnimalsData   = nil
-local AnimalsShared = nil
+-- Botão Sim = Excluir tudo
+BtnSim.MouseButton1Click:Connect(function()
+    MainGui:Destroy()
+    ConfirmGui:Destroy()
+    if BodyVel then BodyVel:Destroy() end
+end)
 
-do
-    local function tryLoad(parent, name)
-        local ok, result = pcall(function()
-            return require(parent:WaitForChild(name, 5))
-        end)
-        return ok and result or nil
-    end
-    local ok_pkg, Packages = pcall(function() return RS:WaitForChild("Packages", 5) end)
-    local ok_dat, Datas    = pcall(function() return RS:WaitForChild("Datas",    5) end)
-    local ok_sh,  Shared   = pcall(function() return RS:WaitForChild("Shared",   5) end)
-    if ok_pkg and Packages then Synchronizer  = tryLoad(Packages, "Synchronizer") end
-    if ok_dat and Datas    then AnimalsData   = tryLoad(Datas,    "Animals")      end
-    if ok_sh  and Shared   then AnimalsShared = tryLoad(Shared,   "Animals")      end
+-- Botão Não = Fechar aviso
+BtnNao.MouseButton1Click:Connect(function()
+    TweenService:Create(ConfirmFrame, TweenInfo.new(0.25), {BackgroundTransparency = 1}):Play()
+    task.wait(0.25)
+    ConfirmGui.Enabled = false
+end)
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+   if not gameProcessed and input.KeyCode == Enum.KeyCode.G and not Minimized then
+      ToggleAutoBall()
+   end
+end)
+
+PlusBtn.MouseButton1Click:Connect(function()
+   if ReachDistance < 12 then
+      ReachDistance = ReachDistance + 1
+      ReachLabel.Text = "Alcance Reach: " .. ReachDistance .. " Studs"
+   end
+end)
+
+MinusBtn.MouseButton1Click:Connect(function()
+   if ReachDistance > 1 then
+      ReachDistance = ReachDistance - 1
+      ReachLabel.Text = "Alcance Reach: " .. ReachDistance .. " Studs"
+   end
+end)
+
+-- Função para rastrear a bola do mapa
+local function GetBall()
+   for _, obj in pairs(workspace:GetDescendants()) do
+      if obj:IsA("BasePart") then
+         local name = obj.Name
+         if name == "TPS" or name == "ESA" or name == "MRS" or name == "PRS" or name == "MPS" or name == "Ball" or name == "Football" or name == "Soccer Ball" then
+            return obj
+         end
+      end
+   end
+   return nil
 end
 
--- FUNÇÕES AUXILIARES
-local function parseValue(text)
-    if not text then return 0 end
-    local clean = tostring(text):gsub("[%$%s%,%/s%/m%/h]", "")
-    local numStr, suf = clean:match("([%d%.]+)(%a?)")
-    if not numStr then return 0 end
-    local n = tonumber(numStr) or 0
-    local mult = ({K=1e3, M=1e6, B=1e9, T=1e12})[(suf or ""):upper()] or 1
-    return n * mult
-end
+---------------------------------------------------------
+-- LOOPS DE FUNCIONALIDADE
+---------------------------------------------------------
 
-local function formatValue(n)
-    if n >= 1e12 then return string.format("%.1fT", n/1e12) end
-    if n >= 1e9  then return string.format("%.1fB", n/1e9)  end
-    if n >= 1e6  then return string.format("%.1fM", n/1e6)  end
-    if n >= 1e3  then return string.format("%.1fK", n/1e3)  end
-    return tostring(math.floor(n))
-end
+-- Auto Follow (Seguir a bola sem travar)
+RunService.RenderStepped:Connect(function()
+   if AutoBallEnabled and not Minimized and LocalPlayer.Character then
+      local char = LocalPlayer.Character
+      local root = char:FindFirstChild("HumanoidRootPart")
+      local humanoid = char:FindFirstChildOfClass("Humanoid")
+      local ball = GetBall()
 
-local function isBlacklisted(itemName)
-    local low = itemName:lower()
-    for _, b in ipairs(BLACK_NAMES) do
-        if b ~= "" and low:find(b:lower()) then return true end
-    end
-    return false
-end
+      if root and humanoid and ball then
+         local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
+         local distance = (root.Position - targetPos).Magnitude
 
-local function isTargeted(itemName)
-    local low = itemName:lower()
-    for _, t in ipairs(TARGET_NAMES) do
-        if t ~= "" and low:find(t:lower()) then return true end
-    end
-    return false
-end
-
-local function isUltra(name)
-    local low = name:lower()
-    for _, u in ipairs(ULTRA_BRAINROTS) do
-        if u ~= "" and low == u:lower() then return true end
-    end
-    return false
-end
-
-local function isHighBrainrot(name)
-    local low = name:lower()
-    for _, h in ipairs(HIGH_BRAINROTS) do
-        if h ~= "" and low == h:lower() then return true end
-    end
-    return false
-end
-
-local function isGodBrainrot(name)
-    local low = name:lower()
-    for _, g in ipairs(GOD_BRAINROTS) do
-        if g ~= "" and low == g:lower() then return true end
-    end
-    return false
-end
-
-local function isLuckyBlock(name)
-    if not name then return false end
-    local low = name:lower()
-    -- Match exato primeiro
-    for _, l in ipairs(LUCKY_BLOCKS) do
-        if l ~= "" and low == l:lower() then return true end
-    end
-    -- Match parcial: qualquer coisa com "lucky block" no nome
-    if low:find("lucky block", 1, true) then return true end
-    return false
-end
-
-local function isEventBrainrot(name)
-    local low = name:lower()
-    for _, e in ipairs(EVENT_BRAINROTS) do
-        if e ~= "" and low == e:lower() then return true end
-    end
-    return false
-end
-
-local function shouldScan(name, genValue)
-    if isBlacklisted(name) then return false end
-    return genValue >= MIN_VALUE or isTargeted(name) or isUltra(name) or isHighBrainrot(name) or isGodBrainrot(name) or isLuckyBlock(name) or isEventBrainrot(name)
-end
-
-local function resolveOwnerName(owner)
-    if not owner then return nil end
-    if typeof(owner) == "Instance" and owner:IsA("Player") then
-        return owner.Name
-    elseif typeof(owner) == "table" then
-        if owner.Name and owner.Name ~= "" then return owner.Name end
-        if owner.UserId then
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p.UserId == owner.UserId then return p.Name end
-            end
-            return tostring(owner.UserId)
-        end
-    elseif typeof(owner) == "Instance" then
-        return owner.Name
-    end
-    return nil
-end
-
-local function isFusing(animalData)
-    if animalData.Machine then
-        if animalData.Machine.Type == "Fuse" and animalData.Machine.Active then
-            return true
-        end
-    end
-    return false
-end
-
-local function isInDuel(animalData)
-    local data = animalData.Data or animalData
-    if animalData.Machine and type(animalData.Machine) == "table" then
-        local mType = animalData.Machine.Type
-        if type(mType) == "string" and mType:lower():find("duel") then return true end
-    end
-    if data and type(data) == "table" and data.Machine and type(data.Machine) == "table" then
-        local mType = data.Machine.Type
-        if type(mType) == "string" and mType:lower():find("duel") then return true end
-    end
-    if animalData.InDuel == true or animalData.inDuel == true or animalData.in_duel == true then return true end
-    if type(data) == "table" then
-        if data.InDuel == true or data.inDuel == true then return true end
-    end
-    return false
-end
-
-local function cameBackFromDuel(player)
-    if player == LocalPlayer then
-        local ok, data = pcall(function()
-            return TeleportService:GetLocalPlayerTeleportData()
-        end)
-        if ok and type(data) == "table" then
-            if data.fromDuel or data.DuelData or data.duel then return true end
-        end
-    end
-    for _, child in ipairs(player:GetChildren()) do
-        local nameLower = child.Name:lower()
-        if nameLower:find("duel") or nameLower:find("returned") then return true end
-    end
-    local attrOk, attrs = pcall(function() return player:GetAttributes() end)
-    if attrOk and attrs then
-        for key, val in pairs(attrs) do
-            if key:lower():find("duel") or key:lower():find("returned") then
-                if val == true or val == 1 then return true end
-            end
-        end
-    end
-    return false
-end
-
-local function getDuelPlayers()
-    local duelPlayers = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if cameBackFromDuel(player) then
-            duelPlayers[player.Name]             = true
-            duelPlayers[tostring(player.UserId)] = true
-        end
-    end
-    return duelPlayers
-end
-
-local function getPlotOwner(plot)
-    local ownerAttr = plot:GetAttribute("Owner") or plot:GetAttribute("PlayerName")
-    if ownerAttr then
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p.Name == tostring(ownerAttr) or tostring(p.UserId) == tostring(ownerAttr) then
-                return p
-            end
-        end
-    end
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p.Name == plot.Name then return p end
-    end
-    return nil
-end
-
-local function isPlotOwnerInDuel(plot, duelPlayers)
-    local owner = plot:GetAttribute("Owner") or plot:GetAttribute("PlayerName") or plot.Name
-    if duelPlayers[owner] or duelPlayers[tostring(owner)] then return true end
-    local player = getPlotOwner(plot)
-    if player and (duelPlayers[player.Name] or duelPlayers[tostring(player.UserId)]) then
-        return true
-    end
-    return false
-end
-
-local loggedKeys = {}
-
-local function hasBeenLogged(jobId, name, genText)
-    local key = jobId .. "|" .. name .. "|" .. genText
-    if loggedKeys[key] then return true end
-    loggedKeys[key] = true
-    return false
-end
-
-local function scanPlots(duelPlayers, seen, currentJobId)
-    local results = {}
-    local plots = Workspace:FindFirstChild("Plots")
-    if not plots then return results end
-
-    for _, plot in ipairs(plots:GetChildren()) do
-        local ok, pot = pcall(function() return Synchronizer:Get(plot.Name) end)
-        if not ok or not pot then continue end
-
-        local ok2, list = pcall(function() return pot:Get("AnimalList") end)
-        if not ok2 or type(list) ~= "table" then continue end
-
-        local syncOwner = nil
-        local ownerOk, ownerVal = pcall(function() return pot:Get("Owner") end)
-        if ownerOk and ownerVal ~= nil then
-            syncOwner = type(ownerVal) == "string" and ownerVal or tostring(ownerVal)
-        end
-
-        local plotDuel = false
-        if syncOwner and duelPlayers[syncOwner] then
-            plotDuel = true
-        else
-            plotDuel = isPlotOwnerInDuel(plot, duelPlayers)
-        end
-
-        local ownerName = syncOwner or resolveOwnerName(ownerVal) or "?"
-
-        local plotItems         = {}
-        local plotHasQualifying = false
-
-        for _, animalData in pairs(list) do
-            if type(animalData) ~= "table" then continue end
-            if isFusing(animalData) then continue end
-
-            local name = animalData.Index
-            if not name then continue end
-            if not AnimalsData or not AnimalsData[name] then continue end
-
-            local inDuel = isInDuel(animalData) or plotDuel
-
-            local data     = animalData.Data or animalData
-            local mutation = data.Mutation
-            if type(mutation) ~= "string" or mutation == "" then mutation = nil end
-
-            local traitsTable = nil
-            local traitsList  = {}
-            if type(data.Traits) == "table" then
-                traitsTable = {}
-                if #data.Traits > 0 then
-                    for _, trait in ipairs(data.Traits) do
-                        if type(trait) == "string" then
-                            table.insert(traitsTable, trait)
-                            table.insert(traitsList, trait)
-                        end
-                    end
-                else
-                    for traitName, enabled in pairs(data.Traits) do
-                        if enabled then
-                            table.insert(traitsTable, traitName)
-                            table.insert(traitsList, traitName)
-                        end
-                    end
-                end
-                if #traitsTable == 0 then traitsTable = nil end
+         if distance > 2.2 then
+            if not BodyVel or BodyVel.Parent ~= root then
+               if BodyVel then BodyVel:Destroy() end
+               BodyVel = Instance.new("BodyVelocity")
+               BodyVel.MaxForce = Vector3.new(100000, 0, 100000)
+               BodyVel.Velocity = Vector3.zero
+               BodyVel.Parent = root
             end
 
-            local ok3, genValue = pcall(function()
-                return AnimalsShared:GetGeneration(name, mutation, traitsTable, nil)
-            end)
-            if not ok3 or type(genValue) ~= "number" then continue end
-
-            local qualifies = shouldScan(name, genValue)
-            if qualifies then plotHasQualifying = true end
-
-            local displayName = name
-            local info = AnimalsData[name]
-            if info and info.DisplayName then displayName = info.DisplayName end
-
-            table.insert(plotItems, {
-                name       = displayName,
-                index      = name,
-                genValue   = genValue,
-                mutation   = mutation,
-                traitsList = traitsList,
-                traitCount = traitsTable and #traitsTable or 0,
-                inDuel     = inDuel,
-                qualifies  = qualifies,
-                ownerName  = ownerName,
-            })
-        end
-
-        if not plotHasQualifying then continue end
-
-        for _, item in ipairs(plotItems) do
-            local genText = "$" .. formatValue(item.genValue) .. "/s"
-            local key     = item.name .. genText .. "|" .. item.ownerName
-            if seen[key] then continue end
-            seen[key] = true
-
-            if hasBeenLogged(currentJobId, item.name, genText) then continue end
-
-            local isUltraName = false
-            for _, u in ipairs(ULTRA_BRAINROTS) do
-                if u ~= "" and item.name:lower() == u:lower() then
-                    isUltraName = true
-                    break
-                end
+            local direction = (targetPos - root.Position).Unit
+            root.CFrame = CFrame.lookAt(root.Position, targetPos)
+            
+            local speed = math.max(humanoid.WalkSpeed, 16)
+            BodyVel.Velocity = direction * speed
+         else
+            if BodyVel then
+               BodyVel:Destroy()
+               BodyVel = nil
             end
+         end
+      end
+   else
+      if BodyVel then
+         BodyVel:Destroy()
+         BodyVel = nil
+      end
+   end
+end)
 
-            local tier = (item.genValue >= 1e9 or isUltraName) and "ULTRA"
-                      or (item.genValue >= 100e6)               and "HIGH"
-                      or "MID"
+-- REACH REAL (Método Magnet/CFrame + Touch)
+RunService.Heartbeat:Connect(function()
+   if ReachDistance > 1 and not Minimized and LocalPlayer.Character then
+      local char = LocalPlayer.Character
+      local leg = char:FindFirstChild("Right Leg") or char:FindFirstChild("Right Lower Leg") or char:FindFirstChild("HumanoidRootPart")
+      local ball = GetBall()
 
-            table.insert(results, {
-                tier       = tier,
-                name       = item.name,
-                gen        = genText,
-                value      = item.genValue,
-                mutation   = item.mutation,
-                traits     = #item.traitsList > 0 and item.traitsList or nil,
-                inDuel     = item.inDuel,
-                ownerName  = item.ownerName,
-                qualifies  = item.qualifies,
-            })
+      if leg and ball then
+         local distance = (leg.Position - ball.Position).Magnitude
+         local maxReach = ReachDistance * 1.8
 
-            print(string.format(
-                "FOUND: %s | Mutation: %s | Traits: %d | Gen: %s | Tier: %s%s",
-                item.name,
-                item.mutation or "None",
-                item.traitCount,
-                genText,
-                tier,
-                item.inDuel and " [IN DUEL]" or ""
-            ))
-        end
-    end
-
-    return results
-end
-
--- Escaneia brainrots na esteira (passarela) — Models direto no Workspace
-local function scanConveyor(seen, currentJobId)
-    local results = {}
-
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        if not obj:IsA("Model") then continue end
-
-        local name = obj.Name
-        if not AnimalsData or not AnimalsData[name] then continue end
-
-        local info = AnimalsData[name]
-        local displayName = (info and info.DisplayName) or name
-
-        local mutation = obj:GetAttribute("Mutation") or nil
-        if type(mutation) ~= "string" or mutation == "" then mutation = nil end
-
-        local ok, genValue = pcall(function()
-            return AnimalsShared:GetGeneration(name, mutation, nil, nil)
-        end)
-        if not ok or type(genValue) ~= "number" then continue end
-
-        if not shouldScan(name, genValue) then continue end
-
-        local genText = "$" .. formatValue(genValue) .. "/s"
-        local key = "conveyor|" .. displayName .. genText
-        if seen[key] then continue end
-        seen[key] = true
-
-        if hasBeenLogged(currentJobId, displayName, genText) then continue end
-
-        local isUltraName = false
-        for _, u in ipairs(ULTRA_BRAINROTS) do
-            if u ~= "" and displayName:lower() == u:lower() then isUltraName = true break end
-        end
-
-        local tier = (genValue >= 1e9 or isUltraName) and "ULTRA"
-                  or isHighBrainrot(displayName)       and "HIGH"
-                  or isGodBrainrot(displayName)        and "FOUND"
-                  or isLuckyBlock(displayName)         and "LUCKY"
-                  or isEventBrainrot(displayName)      and "EVENT"
-                  or (genValue >= 100e6)               and "MID"
-                  or (genValue >= 10e6)                and "BAD"
-                  or nil
-
-        if not tier then continue end
-
-        table.insert(results, {
-            tier         = tier,
-            name         = displayName,
-            gen          = genText,
-            value        = genValue,
-            mutation     = mutation,
-            traits       = nil,
-            inDuel       = false,
-            ownerName    = "Esteira",
-            fromConveyor = true,
-        })
-
-        print(string.format("🎯 ESTEIRA: %s | Gen: %s | Tier: %s", displayName, genText, tier))
-    end
-
-    return results
-end
-local function sendToFirebase(itemName, itemValue, ownerName)
-    if FIREBASE_URL == "" then warn("❌ FIREBASE_URL vazia") return end
-
-    local headers = { ["Content-Type"] = "application/json" }
-    local data = {
-        Item      = tostring(itemName or "Unknown"),
-        Value     = tonumber(itemValue) or 0,
-        ValueRaw  = formatValue(tonumber(itemValue) or 0),
-        PlaceId   = PLACE_ID,
-        JobId     = CURRENT_JOB,
-        Timestamp = os.time(),
-        Date      = os.date("%d/%m/%Y %H:%M:%S"),
-        Players   = #Players:GetPlayers(),
-        Owner     = ownerName or "Unknown",
-    }
-
-    local body = HttpService:JSONEncode(data)
-    print("📤 Enviando pro Firebase...")
-
-    local success, response = pcall(function()
-        return http_request({ Url = FIREBASE_URL, Method = "PUT", Headers = headers, Body = body })
-    end)
-
-    if success and response then
-        print("✅ Status:", response.StatusCode)
-        print("📥 Resposta:", response.Body)
-    else
-        warn("❌ Falhou ao enviar! Tentando novamente...")
-        task.wait(1)
-        pcall(function()
-            http_request({ Url = FIREBASE_URL, Method = "PUT", Headers = headers, Body = body })
-        end)
-    end
-end
-
--- WEBHOOK
--- Emojis customizados do servidor Discord
-local MUTATION_EMOJIS = {
-    -- Mutações de brainrot específico
-    ["ice"]        = "<:gelo:1499796323350614037>",
-    ["gelo"]       = "<:gelo:1499796323350614037>",
-    ["taco"]       = "<:tacos:1499796380036628512>",
-    ["tacos"]      = "<:tacos:1499796380036628512>",
-    ["orcalero"]   = "<:orcalero:1499796436467056842>",
-    ["matteo"]     = "<:matteo:1499796547116863678>",
-    ["fire"]       = "<:fogo:1499796606302556331>",
-    ["fogo"]       = "<:fogo:1499796606302556331>",
-    ["chicleteira"]= "<:chicleteira:1499796720714911925>",
-    ["indonesia"]  = "<:indonesia:1499796655485223093>",
-    ["indonésia"]  = "<:indonesia:1499796655485223093>",
-    ["luzshow"]    = "<:luzshow:1499796963011592363>",
-    ["luz"]        = "<:luzshow:1499796963011592363>",
-    ["aranha"]     = "<:aranha:1499796770652422296>",
-    ["balao"]      = "<:balaoalaranjado:1499797372707016876>",
-    ["balloon"]    = "<:balaoalaranjado:1499797372707016876>",
-    ["rena"]       = "<:rena:1499795408296087623>",
-    ["nyan"]       = "<:nyancat:1499796270938853548>",
-    ["azul"]       = "<:balaoazul:1499795484192276681>",
-    ["brazil"]     = "<:brazil:1499795544837460110>",
-    ["brasil"]     = "<:brazil:1499795544837460110>",
-    ["mut26"]      = "<:mut26:1499795698969870468>",
-    ["abobora"]    = "<:abobora:1499795759363526768>",
-    ["pumpkin"]    = "<:abobora:1499795759363526768>",
-    ["dinheiro"]   = "<:dinheiro:1499795905245741339>",
-    ["money"]      = "<:dinheiro:1499795905245741339>",
-    ["bolha"]      = "<:bolhachiclete:1499795814556373214>",
-    ["bubble"]     = "<:bolhachiclete:1499795814556373214>",
-    ["bubogum"]    = "<:bolhachiclete:1499795814556373214>",
-    ["crab"]       = "<:crab:1499796089442668604>",
-    ["glitter"]    = "<:glitter:1499796167116984380>",
-    ["hacker"]     = "<:glitter:1499796167116984380>",
-    ["pascoa"]     = "<:pascoa:1499796222486118611>",
-    ["easter"]     = "<:pascoa:1499796222486118611>",
-    ["gatito"]     = "<:migatito:1499796879242690713>",
-    ["mi gatito"]  = "<:migatito:1499796879242690713>",
-    -- Mutações padrão (tipo, raridade)
-    ["rainbow"]    = "<:rainbow:1499781349161308372>",
-    ["blood"]      = "<:blood:1499781472465191074>",
-    ["bloody"]     = "<:blood:1499781472465191074>",
-    ["vermelho"]   = "<:blood:1499781472465191074>",
-    ["candy"]      = "<:candy:1499781585950740601>",
-    ["cursed"]     = "<:cursed:1499781732281487684>",
-    ["cyber"]      = "<:cyber:1499781855581311156>",
-    ["diamond"]    = "<:diamante:1499782190290960424>",
-    ["diamante"]   = "<:diamante:1499782190290960424>",
-    ["divine"]     = "<:divine:1499782322604736512>",
-    ["galaxy"]     = "<:galaxy:1499781095422689382>",
-    ["gold"]       = "<:gold:1499782467073081615>",
-    ["lava"]       = "<:lava:1499783249097134191>",
-    ["yiyang"]     = "<:yiyang:1499783409315348610>",
-    ["normal"]     = "<:normal:1499783697816227961>",
-    ["base"]       = "<:normal:1499783697816227961>",
-    ["radioactive"]= "<:radioativa:1499781218244235275>",
-    ["radioativa"] = "<:radioativa:1499781218244235275>",
-}
-
-local CHANNEL_NAMES = {
-    ["Ultra"]  = "ultralights",
-    ["High"]   = "highlights",
-    ["Mid"]    = "midlights",
-    ["Bad"]    = "badlights",
-    ["Found"]  = "found",
-    ["Lucky"]  = "lucky Block",
-    ["Event"]  = "events",
-    ["Gaara notify"] = "Notifier Access",
-}
-
-local function getMutationEmojis(mutation)
-    if not mutation or mutation == "" or mutation == "none" or mutation == "default" then return "" end
-    local emojis = {}
-    local low = mutation:lower()
-    local found = false
-    for key, emoji in pairs(MUTATION_EMOJIS) do
-        if low:find(key, 1, true) then
-            table.insert(emojis, emoji)
-            found = true
-        end
-    end
-    if not found then
-        return "**[" .. mutation:upper() .. "]**"
-    end
-    -- Remove duplicatas
-    local seen = {}
-    local unique = {}
-    for _, e in ipairs(emojis) do
-        if not seen[e] then seen[e] = true table.insert(unique, e) end
-    end
-    return table.concat(unique, " ")
-end
-
-local function getBrainrotImage(name)
-    local ok, result = pcall(function()
-        local url = "https://stealabrainrot.fandom.com/api.php?action=query&titles="
-                    .. HttpService:UrlEncode(name)
-                    .. "&prop=pageimages&piprop=original&format=json"
-        local resp = http_request({ Url = url, Method = "GET" })
-        if resp and resp.StatusCode == 200 then
-            local data = HttpService:JSONDecode(resp.Body)
-            for _, page in pairs(data.query.pages) do
-                if page.original and page.original.source then return page.original.source end
+         if distance <= maxReach and distance > 1.5 then
+            if firetouchinterest then
+               firetouchinterest(ball, leg, 0)
+               firetouchinterest(ball, leg, 1)
             end
-        end
-    end)
-    return ok and result or nil
-end
-
--- Emoji de raridade por valor
-local function getRarityEmoji(value)
-    if value >= 1e9  then return "🔶" end -- 1B+
-    if value >= 500e6 then return "🟧" end -- 500M+
-    if value >= 100e6 then return "🟦" end -- 100M+
-    if value >= 50e6  then return "🟪" end -- 50M+
-    if value >= 10e6  then return "🔹" end -- 10M+
-    return "⬜"
-end
-
--- Emojis de mutação inline de um brainrot
-local function getInlineMutEmojis(mutation, traits)
-    local allMuts = {}
-    if mutation and mutation ~= "" and mutation ~= "none" and mutation ~= "default" then
-        table.insert(allMuts, mutation)
-    end
-    if type(traits) == "table" then
-        for _, t in ipairs(traits) do
-            if type(t) == "string" and t ~= "" then table.insert(allMuts, t) end
-        end
-    end
-    local emojis = {}
-    local seen = {}
-    for _, mut in ipairs(allMuts) do
-        local low = mut:lower()
-        for key, emoji in pairs(MUTATION_EMOJIS) do
-            if low:find(key, 1, true) and not seen[emoji] then
-                seen[emoji] = true
-                table.insert(emojis, emoji)
+            if sethiddenproperty then
+               sethiddenproperty(ball, "NetworkIsServerBounded", false)
             end
-        end
-    end
-    return table.concat(emojis, " ")
-end
-
-local function getMutationPrefix(mutation)
-    if not mutation then return "" end
-    local m = mutation:lower()
-    if m == "" or m == "none" or m == "default" then return "" end
-    return "[" .. mutation:upper() .. "] "
-end
-
--- Monta lista "Others" igual ao Goblin
-local function buildListText(results, targetOwner, skipName)
-    local lines = {}
-    local count = 0
-    for _, r in ipairs(results) do
-        if r.name == skipName then continue end
-        if count >= 20 then break end
-        local rarityEmoji = getRarityEmoji(r.value)
-        local mutEmojis   = getInlineMutEmojis(r.mutation, r.traits)
-        local line = "1x " .. rarityEmoji .. " " .. r.name
-        if mutEmojis ~= "" then line = line .. " " .. mutEmojis end
-        line = line .. " ($" .. formatValue(r.value) .. "/s)"
-        if r.inDuel then line = line .. " ⚔️" end
-        table.insert(lines, line)
-        count = count + 1
-    end
-    if #lines == 0 then return "" end
-    return table.concat(lines, "\n")
-end
-
-local function sendWebhook(url, name, value, mutation, listText, showFields, footer, ownerName, jobId, includeJoinLink, inDuel, pingHere, traits)
-    if not url or url == "" then return end
-
-    local imageUrl   = getBrainrotImage(name)
-    local joinLink   = "https://liphyrdev.github.io/notifier/?placeId=109983668079237&gameInstanceId=" .. (jobId or CURRENT_JOB)
-    local mutPrefix  = getMutationPrefix(mutation)
-    local channelLabel = CHANNEL_NAMES[footer] or footer or "Notifier"
-
-    -- Junta mutation + traits para pegar todos os emojis
-    local allMutations = {}
-    if mutation and mutation ~= "" and mutation ~= "none" then
-        table.insert(allMutations, mutation)
-    end
-    if type(traits) == "table" then
-        for _, t in ipairs(traits) do
-            if type(t) == "string" and t ~= "" then
-                table.insert(allMutations, t)
-            end
-        end
-    end
-
-    -- Monta emojis de todas as mutações + traits
-    local emojiSet = {}
-    local emojiSeen = {}
-    for _, mut in ipairs(allMutations) do
-        local low = mut:lower()
-        for key, emoji in pairs(MUTATION_EMOJIS) do
-            if low:find(key, 1, true) and not emojiSeen[emoji] then
-                emojiSeen[emoji] = true
-                table.insert(emojiSet, emoji)
-            end
-        end
-    end
-    local mutEmojis = #emojiSet > 0 and table.concat(emojiSet, " ") or ""
-
-    -- Se não achou emoji mas tem mutação, mostra o nome
-    if mutEmojis == "" and #allMutations > 0 then
-        local names = {}
-        for _, m in ipairs(allMutations) do table.insert(names, "[" .. m:upper() .. "]") end
-        mutEmojis = table.concat(names, " ")
-    end
-
-    -- Data/hora em Brasília completa
-    local brasilia_time = os.date("!%d de %B de %Y às %H:%M", os.time() - 3 * 3600)
-
-    local embedTitle = "Estevinn Notifier | " .. channelLabel
-
-    -- Emoji da mutação principal (Cyber, Gold, etc)
-    local mainMutEmoji = ""
-    if mutation and mutation ~= "" and mutation ~= "none" and mutation ~= "default" then
-        local low = mutation:lower()
-        for key, emoji in pairs(MUTATION_EMOJIS) do
-            if low:find(key, 1, true) then
-                mainMutEmoji = emoji
-                break
-            end
-        end
-        if mainMutEmoji == "" then mainMutEmoji = "**[" .. mutation:upper() .. "]**" end
-    end
-
-    -- Emojis dos traits (taco, fogo, etc) — linha separada
-    local traitEmojis = {}
-    local traitSeen = {}
-    if type(traits) == "table" then
-        for _, t in ipairs(traits) do
-            if type(t) == "string" and t ~= "" then
-                local low = t:lower()
-                for key, emoji in pairs(MUTATION_EMOJIS) do
-                    if low:find(key, 1, true) and not traitSeen[emoji] then
-                        traitSeen[emoji] = true
-                        table.insert(traitEmojis, emoji)
-                    end
-                end
-            end
-        end
-    end
-    local traitEmojisStr = table.concat(traitEmojis, " ")
-
-    -- Linha do nome: emoji_mutação_principal [MUTAÇÃO] Nome $valor
-    local nameDisplay = (mainMutEmoji ~= "" and mainMutEmoji .. " " or "") .. "**" .. mutPrefix .. name .. "** $" .. formatValue(value) .. "/s"
-
-    local descParts = {}
-    table.insert(descParts, nameDisplay)
-
-    -- Traits em linha separada embaixo
-    if traitEmojisStr ~= "" then
-        table.insert(descParts, traitEmojisStr)
-    end
-
-    -- "Others" com lista dos outros brainrots
-    if listText and listText ~= "" then
-        table.insert(descParts, "\n**Others**\n" .. listText)
-    end
-
-    local description = table.concat(descParts, "\n")
-
-    local fields = {}
-    if includeJoinLink then
-        table.insert(fields, {["name"] = "Owner                         Bot", ["value"] = "`" .. (ownerName or "?") .. "`          `" .. LocalPlayer.Name .. "`"})
-        table.insert(fields, {["name"] = "Job ID",      ["value"] = "`" .. (jobId or CURRENT_JOB) .. "`"})
-        table.insert(fields, {["name"] = "Server Info", ["value"] = "`" .. #Players:GetPlayers() .. "/8 Players`"})
-        table.insert(fields, {["name"] = "Join Server", ["value"] = "[CLICK TO JOIN](" .. joinLink .. ")"})
-    else
-        table.insert(fields, {["name"] = "Owner                         Bot", ["value"] = "`" .. (ownerName or "?") .. "`          `" .. LocalPlayer.Name .. "`"})
-        table.insert(fields, {["name"] = "Server Info", ["value"] = "`" .. #Players:GetPlayers() .. "/8 Players`"})
-    end
-
-    local embed = {
-        ["title"]       = embedTitle,
-        ["color"]       = 0,
-        ["description"] = description,
-        ["thumbnail"]   = { ["url"] = imageUrl or "" },
-        ["fields"]      = fields,
-        ["footer"]      = { ["text"] = "discord.gg/hFhE4QjHd | ✓ | " .. brasilia_time }
-    }
-
-    pcall(function()
-        local body = { username = "Estevinn Notifier", embeds = { embed } }
-        if pingHere then body["content"] = "@here" end
-        http_request({
-            Url     = url,
-            Method  = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
-            Body    = HttpService:JSONEncode(body),
-        })
-    end)
-end
-
--- Escaneia Lucky Blocks usando Synchronizer igual ao scanPlots
-local function scanLuckyBlocks(seen, currentJobId)
-    local results = {}
-    if not Synchronizer then return results end
-
-    local ok, plotsData = pcall(function() return Synchronizer:Get("Plots") end)
-    if not ok or not plotsData then return results end
-
-    for _, plotData in pairs(plotsData) do
-        if type(plotData) ~= "table" then continue end
-        local list = plotData.Animals or plotData.Brainrots or plotData.Items or {}
-        if type(list) ~= "table" then continue end
-
-        for _, animalData in pairs(list) do
-            if type(animalData) ~= "table" then continue end
-            local name = animalData.Index
-            if not name then continue end
-
-            -- Verifica se é Lucky Block da lista
-            local isLucky = false
-            for _, lb in ipairs(LUCKY_BLOCKS) do
-                if lb ~= "" and name:lower() == lb:lower() then
-                    isLucky = true
-                    break
-                end
-            end
-            if not isLucky then continue end
-
-            local key = "lucky|" .. name:lower()
-            if seen[key] then continue end
-            seen[key] = true
-
-            if hasBeenLogged(currentJobId, name, "lucky") then continue end
-
-            table.insert(results, {
-                name      = name,
-                value     = 0,
-                mutation  = nil,
-                gen       = "Lucky Block",
-                inDuel    = false,
-                ownerName = "?",
-                fromLucky = true,
-            })
-            print(string.format("🍀 LUCKY BLOCK: %s", name))
-        end
-    end
-
-    return results
-end
-task.wait(0.3)
-
-local detectedJobId = game.JobId
-local found         = false
-
-if Synchronizer then
-    local duelPlayers = getDuelPlayers()
-    local seen        = {}
-    local results     = scanPlots(duelPlayers, seen, detectedJobId)
-
-    if #results > 0 then
-        found = true
-        table.sort(results, function(a, b) return a.value > b.value end)
-
-        -- best = brainrot mais valioso que qualifica (não só os do Others)
-        local best = nil
-        for _, r in ipairs(results) do
-            if r.qualifies then best = r break end
-        end
-        if not best then best = results[1] end
-
-        if best then
-            if _G.GaaraNotify then
-                pcall(function()
-                    _G.GaaraNotify({ name = best.name, value = formatValue(best.value), jobId = detectedJobId })
-                end)
-            end
-
-            sendToFirebase(best.name, best.value, best.ownerName)
-
-            -- NOTIFIER ACCESS: uma log com o melhor brainrot, os outros aparecem na embed
-            local listText = buildListText(results, best.ownerName, best.name)
-            sendWebhook(WEBHOOK_URL, best.name, best.value, best.mutation, listText, true, "Gaara notify",
-                best.ownerName, detectedJobId, true, best.inDuel, nil, best.traits)
-
-            local isUltraB = false
-            for _, u in ipairs(ULTRA_BRAINROTS) do
-                if u ~= "" and best.name:lower() == u:lower() then isUltraB = true break end
-            end
-            local isHighB  = isHighBrainrot(best.name)
-            local isGodB   = isGodBrainrot(best.name)
-            local isLuckyB = isLuckyBlock(best.name)
-            local isEventB = isEventBrainrot(best.name)
-
-            local hasNonEvent = false
-            for _, r in ipairs(results) do
-                local isUltraR = false
-                for _, u in ipairs(ULTRA_BRAINROTS) do
-                    if u ~= "" and r.name:lower() == u:lower() then isUltraR = true break end
-                end
-                if isUltraR or r.value >= 1e9
-                or isHighBrainrot(r.name)
-                or isGodBrainrot(r.name)
-                or isLuckyBlock(r.name)
-                or (r.value >= 10e6 and not isEventBrainrot(r.name)) then
-                    hasNonEvent = true
-                    break
-                end
-            end
-
-            if isUltraB or best.value >= 1e9 then
-                sendWebhook(WEBHOOK_ULTRA, best.name, best.value, best.mutation, listText, true, "Ultra",
-                    best.ownerName, detectedJobId, false, best.inDuel, true, best.traits)
-
-            elseif isHighB then
-                sendWebhook(WEBHOOK_HIGH, best.name, best.value, best.mutation, listText, true, "High",
-                    best.ownerName, detectedJobId, false, best.inDuel, false, best.traits)
-
-            elseif isGodB then
-                sendWebhook(WEBHOOK_FOUND, best.name, best.value, best.mutation, listText, true, "Found",
-                    best.ownerName, detectedJobId, true, best.inDuel, false, best.traits)
-
-            elseif isLuckyB then
-                sendWebhook(WEBHOOK_LUCKY, best.name, best.value, best.mutation, listText, true, "Lucky",
-                    best.ownerName, detectedJobId, true, best.inDuel, false, best.traits)
-
-            elseif isEventB then
-                if not hasNonEvent then
-                    sendWebhook(WEBHOOK_EVENT, best.name, best.value, best.mutation, listText, true, "Event",
-                        best.ownerName, detectedJobId, true, best.inDuel, false, best.traits)
-                end
-
-            elseif best.value >= 100e6 and best.value < 10e9 then
-                sendWebhook(WEBHOOK_MID, best.name, best.value, best.mutation, listText, true, "Mid",
-                    best.ownerName, detectedJobId, false, best.inDuel, false, best.traits)
-
-            elseif best.value >= 10e6 and best.value < 100e6 then
-                sendWebhook(WEBHOOK_BAD, best.name, best.value, best.mutation, listText, true, "Bad",
-                    best.ownerName, detectedJobId, false, best.inDuel, false, best.traits)
-            end
-
-            print("✅ Sucesso:", best.name, "| Owner:", best.ownerName, "|", best.gen)
-            if best.inDuel then print("⚔️ Em duel!") end
-
-            -- Espera webhooks serem enviados antes de hopar
-            task.wait(0.5)
-            hop(best.name)
-        end
-    end
-end
-
-if not found then
-    print("❌ Nenhum brainrot valioso encontrado")
-    task.wait(0.04)
-    hop("Scan")
-end
+            ball.CFrame = leg.CFrame * CFrame.new(0, -1, -1)
+         end
+      end
+   end
+end)
