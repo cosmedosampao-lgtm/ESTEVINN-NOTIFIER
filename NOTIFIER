@@ -1,503 +1,576 @@
--- ⚽ CR7 HUB || Matheus 
--- Todos os créditos: Matheus
----------------------------------------------------------
--- Serviços Básicos
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Variáveis Globais
-local ReachDistance = 1
-local AutoBallEnabled = false
-local BodyVel = nil
-local Minimized = false
+local player = Players.LocalPlayer
+local Char = player.Character or player.CharacterAdded:Wait()
 
----------------------------------------------------------
--- TELA DE CARREGAMENTO ANIMADA (5-10s)
----------------------------------------------------------
-local function CreateLoadingScreen()
-    local LoadingGui = Instance.new("ScreenGui")
-    LoadingGui.Name = "CR7_Loading"
-    LoadingGui.ResetOnSpawn = false
-    LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    LoadingGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- Load Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-    local Background = Instance.new("Frame")
-    Background.Size = UDim2.new(1, 0, 1, 0)
-    Background.BackgroundColor3 = Color3.fromRGB(8, 8, 12)
-    Background.Parent = LoadingGui
+local Window = Rayfield:CreateWindow({
+    Name = "Kali Hub",
+    LoadingTitle = "Kali Hub",
+    LoadingSubtitle = "Basketball Legends",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "KaliHub",
+        FileName = "Config"
+    },
+    KeySystem = false,
+})
 
-    local Gradient = Instance.new("UIGradient")
-    Gradient.Rotation = 45
-    Gradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(45, 35, 25)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 35))
-    }
-    Gradient.Parent = Background
+-- Tabs
+local MainTab = Window:CreateTab("Main", "target")
+local PlayerTab = Window:CreateTab("Player", "zap")
+local MiscTab = Window:CreateTab("Misc", "settings")
 
-    local TitleContainer = Instance.new("Frame")
-    TitleContainer.Size = UDim2.new(1, 0, 0, 100)
-    TitleContainer.Position = UDim2.new(0, 0, 0.35, -50)
-    TitleContainer.BackgroundTransparency = 1
-    TitleContainer.Parent = Background
+-- =====================
+-- HELPERS
+-- =====================
+local isPark = workspace:WaitForChild("Game"):FindFirstChild("Courts") and true or false
 
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, 80)
-    Title.BackgroundTransparency = 1
-    Title.Text = "⚽ CR7 HUB"
-    Title.TextColor3 = Color3.fromRGB(255, 215, 0)
-    Title.Font = Enum.Font.FredokaOne
-    Title.TextSize = 55
-    Title.TextTransparency = 1
-    Title.Parent = TitleContainer
+local function getPlayerFromModel(model)
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr.Character == model then return plr end
+    end
+    return nil
+end
 
-    local SubTitle = Instance.new("TextLabel")
-    SubTitle.Size = UDim2.new(1, 0, 0, 30)
-    SubTitle.Position = UDim2.new(0, 0, 0, 70)
-    SubTitle.BackgroundTransparency = 1
-    SubTitle.Text = "Carregando... by Matheus"
-    SubTitle.TextColor3 = Color3.fromRGB(200, 180, 80)
-    SubTitle.Font = Enum.Font.SourceSansItalic
-    SubTitle.TextSize = 18
-    SubTitle.TextTransparency = 1
-    SubTitle.Parent = TitleContainer
+local function isOnDifferentTeam(otherModel)
+    local otherPlayer = getPlayerFromModel(otherModel)
+    if not otherPlayer then return false end
+    if not player.Team or not otherPlayer.Team then
+        return otherPlayer ~= player
+    end
+    return player.Team ~= otherPlayer.Team
+end
 
-    local BarContainer = Instance.new("Frame")
-    BarContainer.Size = UDim2.new(0, 320, 0, 20)
-    BarContainer.Position = UDim2.new(0.5, -160, 0.55, -10)
-    BarContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    BarContainer.BorderSizePixel = 0
-    BarContainer.Parent = Background
-    Instance.new("UICorner", BarContainer).CornerRadius = UDim.new(0, 10)
-
-    local BarFill = Instance.new("Frame")
-    BarFill.Size = UDim2.new(0, 0, 1, 0)
-    BarFill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-    BarFill.Parent = BarContainer
-    Instance.new("UICorner", BarFill).CornerRadius = UDim.new(0, 10)
-
-    local BarGradient = Instance.new("UIGradient")
-    BarGradient.Rotation = 0
-    BarGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 180, 0)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 220, 0)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 180, 0))
-    }
-    BarGradient.Parent = BarFill
-
-    local PercentText = Instance.new("TextLabel")
-    PercentText.Size = UDim2.new(0, 60, 0, 25)
-    PercentText.Position = UDim2.new(0.5, -30, 0.62, 0)
-    PercentText.BackgroundTransparency = 1
-    PercentText.Text = "0%"
-    PercentText.TextColor3 = Color3.fromRGB(255, 215, 0)
-    PercentText.Font = Enum.Font.GothamBold
-    PercentText.TextSize = 14
-    PercentText.Parent = Background
-
-    -- Animação de entrada
-    TweenService:Create(Title, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-    TweenService:Create(SubTitle, TweenInfo.new(1.0, Enum.EasingStyle.Quad), {TextTransparency = 0}):Play()
-
-    -- Animação da barra (8 segundos)
-    task.spawn(function()
-        local duration = 8
-        local steps = 50
-        for i = 1, steps do
-            local progress = i / steps
-            BarFill.Size = UDim2.new(progress, 0, 1, 0)
-            PercentText.Text = tostring(math.floor(progress * 100)) .. "%"
-            task.wait(duration / steps)
+local function findPlayerWithBall()
+    if isPark then
+        local closestPlayer, closestDistance = nil, math.huge
+        for _, model in pairs(workspace:GetChildren()) do
+            if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") and model ~= player.Character then
+                local tool = model:FindFirstChild("Basketball")
+                if tool and tool:IsA("Tool") then
+                    local hrp = model.HumanoidRootPart
+                    local dist = (hrp.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                    if dist < closestDistance then
+                        closestDistance = dist
+                        closestPlayer = model
+                    end
+                end
+            end
         end
-        BarFill.Size = UDim2.new(1, 0, 1, 0)
-        PercentText.Text = "100%"
-        task.wait(0.5)
+        if closestPlayer then
+            return closestPlayer, closestPlayer:FindFirstChild("HumanoidRootPart")
+        end
+        return nil, nil
+    end
 
-        -- Fade out
-        TweenService:Create(Background, TweenInfo.new(0.8, Enum.EasingStyle.Quad), {BackgroundTransparency = 1}):Play()
-        TweenService:Create(Title, TweenInfo.new(0.6), {TextTransparency = 1}):Play()
-        TweenService:Create(SubTitle, TweenInfo.new(0.6), {TextTransparency = 1}):Play()
-        task.wait(0.9)
-        LoadingGui:Destroy()
-    end)
+    local looseBall = workspace:FindFirstChild("Basketball")
+    if looseBall and looseBall:IsA("BasePart") then
+        local closestPlayer, closestDistance = nil, math.huge
+        for _, model in pairs(workspace:GetChildren()) do
+            if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") and model ~= player.Character then
+                if isOnDifferentTeam(model) then
+                    local rootPart = model:FindFirstChild("HumanoidRootPart")
+                    local distance = (looseBall.Position - rootPart.Position).Magnitude
+                    if distance < closestDistance and distance < 15 then
+                        closestDistance = distance
+                        closestPlayer = model
+                    end
+                end
+            end
+        end
+        if closestPlayer then
+            return closestPlayer, closestPlayer:FindFirstChild("HumanoidRootPart")
+        end
+    end
 
-    return LoadingGui
+    for _, model in pairs(workspace:GetChildren()) do
+        if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") and model ~= player.Character then
+            if isOnDifferentTeam(model) then
+                local basketball = model:FindFirstChild("Basketball")
+                if basketball and basketball:IsA("Tool") then
+                    return model, model:FindFirstChild("HumanoidRootPart")
+                end
+            end
+        end
+    end
+
+    return nil, nil
 end
 
--- Inicia tela de carregamento
-CreateLoadingScreen()
-task.wait(9.5) -- Espera a animação terminar
+-- =====================
+-- AUTO SHOOT (AUTO GREEN)
+-- =====================
+MainTab:CreateSection("Auto Shooting")
 
----------------------------------------------------------
--- INTERFACE PRINCIPAL (CR7 HUB || Matheus)
----------------------------------------------------------
-local ParentGui = gethui and gethui() or LocalPlayer:WaitForChild("PlayerGui")
+local autoShootEnabled = false
+local shootPower = 0.8
+local visibleConn = nil
 
-if ParentGui:FindFirstChild("CR7MainGui") then
-   ParentGui.CR7MainGui:Destroy()
+local visualGui = player.PlayerGui:WaitForChild("Visual")
+local shootingElement = visualGui:WaitForChild("Shooting")
+local Shoot = ReplicatedStorage.Packages.Knit.Services.ControlService.RE.Shoot
+
+MainTab:CreateToggle({
+    Name = "Auto Time",
+    CurrentValue = false,
+    Flag = "AutoShoot",
+    Callback = function(value)
+        autoShootEnabled = value
+        if autoShootEnabled then
+            if not visibleConn then
+                visibleConn = shootingElement:GetPropertyChangedSignal("Visible"):Connect(function()
+                    if autoShootEnabled and shootingElement.Visible == true then
+                        task.wait(0.25)
+                        Shoot:FireServer(shootPower)
+                    end
+                end)
+            end
+        else
+            if visibleConn then
+                visibleConn:Disconnect()
+                visibleConn = nil
+            end
+        end
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "Shot Timing",
+    Range = {50, 100},
+    Increment = 1,
+    Suffix = "%",
+    CurrentValue = 80,
+    Flag = "ShootTiming",
+    Callback = function(value)
+        shootPower = value / 100
+    end,
+})
+
+MainTab:CreateParagraph({
+    Title = "Shot Timing Guide",
+    Content = "80 = Mediocre | 90 = Good | 95 = Great | 100 = Perfect"
+})
+
+-- =====================
+-- AUTO GUARD
+-- =====================
+MainTab:CreateSection("Auto Guard")
+
+local autoGuardEnabled = false
+local autoGuardToggleEnabled = false
+local holdingG = false
+local guardDistance = 10
+local predictionTime = 0.3
+local lastPositions = {}
+local autoGuardConnection = nil
+
+local function autoGuard()
+    if not autoGuardEnabled then return end
+    if player.Character and player.Character:FindFirstChild("Basketball") then return end
+
+    local character = player.Character
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not rootPart then return end
+
+    local ballCarrier, ballCarrierRoot = findPlayerWithBall()
+
+    if ballCarrier and ballCarrierRoot then
+        local distance = (rootPart.Position - ballCarrierRoot.Position).Magnitude
+        local currentPos = ballCarrierRoot.Position
+        local velocity = Vector3.new(0, 0, 0)
+
+        if lastPositions[ballCarrier] then
+            velocity = (currentPos - lastPositions[ballCarrier]) / 0.016
+        end
+        lastPositions[ballCarrier] = currentPos
+
+        local predictedPos = currentPos + (velocity * predictionTime * 0.016)
+        local directionToOpponent = (predictedPos - rootPart.Position).Unit
+        local defensivePosition = predictedPos - (directionToOpponent * 5)
+        defensivePosition = Vector3.new(defensivePosition.X, rootPart.Position.Y, defensivePosition.Z)
+
+        if distance <= guardDistance then
+            humanoid:MoveTo(defensivePosition)
+
+            local VirtualInputManager = game:GetService("VirtualInputManager")
+            if distance <= 10 then
+                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+            else
+                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+            end
+        else
+            local VirtualInputManager = game:GetService("VirtualInputManager")
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        end
+    else
+        local VirtualInputManager = game:GetService("VirtualInputManager")
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+    end
 end
 
-local MainGui = Instance.new("ScreenGui")
-MainGui.Name = "CR7MainGui"
-MainGui.ResetOnSpawn = false
-MainGui.Parent = ParentGui
+MainTab:CreateToggle({
+    Name = "Auto Guard (Hold G to Activate)",
+    CurrentValue = false,
+    Flag = "AutoGuard",
+    Callback = function(value)
+        autoGuardToggleEnabled = value
+        if not value then
+            autoGuardEnabled = false
+            if autoGuardConnection then
+                autoGuardConnection:Disconnect()
+                autoGuardConnection = nil
+            end
+            lastPositions = {}
+            local VirtualInputManager = game:GetService("VirtualInputManager")
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+        end
+    end,
+})
 
--- BOLINHA MINIMIZADA (invisível no início)
-local MiniBola = Instance.new("TextButton")
-MiniBola.Size = UDim2.new(0, 50, 0, 50)
-MiniBola.Position = UDim2.new(0.02, 0, 0.02, 0)
-MiniBola.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-MiniBola.Text = "CR7"
-MiniBola.TextColor3 = Color3.fromRGB(0, 0, 0)
-MiniBola.Font = Enum.Font.GothamBold
-MiniBola.TextSize = 11
-MiniBola.Active = true
-MiniBola.Draggable = true
-MiniBola.Visible = false
-MiniBola.Parent = MainGui
-Instance.new("UICorner", MiniBola).CornerRadius = UDim.new(1, 0)
+MainTab:CreateSlider({
+    Name = "Guard Distance",
+    Range = {5, 20},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = 10,
+    Flag = "GuardDistance",
+    Callback = function(value)
+        guardDistance = value
+    end,
+})
 
-local MiniStroke = Instance.new("UIStroke")
-MiniStroke.Color = Color3.fromRGB(255, 255, 255)
-MiniStroke.Thickness = 2
-MiniStroke.Parent = MiniBola
+MainTab:CreateSlider({
+    Name = "Prediction Time",
+    Range = {1, 8},
+    Increment = 1,
+    Suffix = "x0.1s",
+    CurrentValue = 3,
+    Flag = "PredictionTime",
+    Callback = function(value)
+        predictionTime = value / 10
+    end,
+})
 
--- JANELA PRINCIPAL
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 220, 0, 180)
-Frame.Position = UDim2.new(0.05, 0, 0.3, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Frame.Active = true
-Frame.Draggable = true
-Frame.Parent = MainGui
+MainTab:CreateParagraph({
+    Title = "Auto Guard Info",
+    Content = "Toggle must be ON, then hold G to activate guarding. Predicts opponent movement and presses F automatically."
+})
 
-local FrameCorner = Instance.new("UICorner")
-FrameCorner.CornerRadius = UDim.new(0, 8)
-FrameCorner.Parent = Frame
-
-local FrameStroke = Instance.new("UIStroke")
-FrameStroke.Color = Color3.fromRGB(255, 215, 0)
-FrameStroke.Thickness = 2
-FrameStroke.Parent = Frame
-
--- CABEÇALHO COM - e X
-local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundTransparency = 1
-Header.Parent = Frame
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -60, 0, 30)
-Title.Position = UDim2.new(0, 0, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "⚽ CR7 HUB"
-Title.TextColor3 = Color3.fromRGB(255, 215, 0)
-Title.Font = Enum.Font.FredokaOne
-Title.TextSize = 16
-Title.Parent = Header
-
-local Credit = Instance.new("TextLabel")
-Credit.Size = UDim2.new(1, 0, 0, 18)
-Credit.Position = UDim2.new(0, 0, 0, 28)
-Credit.BackgroundTransparency = 1
-Credit.Text = "by Matheus"
-Credit.TextColor3 = Color3.fromRGB(180, 180, 180)
-Credit.Font = Enum.Font.SourceSansItalic
-Credit.TextSize = 12
-Credit.Parent = Frame
-
-local BtnMinimize = Instance.new("TextButton")
-BtnMinimize.Size = UDim2.new(0, 25, 0, 25)
-BtnMinimize.Position = UDim2.new(1, -55, 0, 2)
-BtnMinimize.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-BtnMinimize.Text = "-"
-BtnMinimize.TextColor3 = Color3.fromRGB(255, 215, 0)
-BtnMinimize.Font = Enum.Font.GothamBold
-BtnMinimize.TextSize = 16
-BtnMinimize.Parent = Header
-Instance.new("UICorner", BtnMinimize).CornerRadius = UDim.new(0, 5)
-
-local BtnClose = Instance.new("TextButton")
-BtnClose.Size = UDim2.new(0, 25, 0, 25)
-BtnClose.Position = UDim2.new(1, -27, 0, 2)
-BtnClose.BackgroundColor3 = Color3.fromRGB(70, 20, 20)
-BtnClose.Text = "X"
-BtnClose.TextColor3 = Color3.fromRGB(255, 80, 80)
-BtnClose.Font = Enum.Font.GothamBold
-BtnClose.TextSize = 14
-BtnClose.Parent = Header
-Instance.new("UICorner", BtnClose).CornerRadius = UDim.new(0, 5)
-
--- BOTÃO SEGUIR BOLA
-local FloatingBtn = Instance.new("TextButton")
-FloatingBtn.Size = UDim2.new(0, 180, 0, 45)
-FloatingBtn.Position = UDim2.new(0.5, -90, 0, 50)
-FloatingBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-FloatingBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
-FloatingBtn.Text = "SEGUIR BOLA:\nDESLIGADO"
-FloatingBtn.Font = Enum.Font.FredokaOne
-FloatingBtn.TextSize = 14
-FloatingBtn.Parent = Frame
-Instance.new("UICorner", FloatingBtn).CornerRadius = UDim.new(0, 6)
-Instance.new("UIStroke", FloatingBtn).Color = Color3.fromRGB(255, 215, 0)
-
--- CONTROLE REACH
-local ReachLabel = Instance.new("TextLabel")
-ReachLabel.Size = UDim2.new(1, -20, 0, 20)
-ReachLabel.Position = UDim2.new(0, 10, 0, 105)
-ReachLabel.BackgroundTransparency = 1
-ReachLabel.Text = "Alcance Reach: 1 Studs"
-ReachLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-ReachLabel.Font = Enum.Font.SourceSansBold
-ReachLabel.TextSize = 14
-ReachLabel.Parent = Frame
-
-local PlusBtn = Instance.new("TextButton")
-PlusBtn.Size = UDim2.new(0, 85, 0, 30)
-PlusBtn.Position = UDim2.new(0, 15, 0, 135)
-PlusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-PlusBtn.Text = "+ REACH"
-PlusBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
-PlusBtn.Font = Enum.Font.SourceSansBold
-PlusBtn.Parent = Frame
-Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 5)
-
-local MinusBtn = Instance.new("TextButton")
-MinusBtn.Size = UDim2.new(0, 85, 0, 30)
-MinusBtn.Position = UDim2.new(0, 115, 0, 135)
-MinusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-MinusBtn.Text = "- REACH"
-MinusBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
-MinusBtn.Font = Enum.Font.SourceSansBold
-MinusBtn.Parent = Frame
-Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 5)
-
--- JANELA DE CONFIRMAÇÃO EXCLUIR
-local ConfirmGui = Instance.new("ScreenGui")
-ConfirmGui.Name = "CR7_Confirm"
-ConfirmGui.ResetOnSpawn = false
-ConfirmGui.Enabled = false
-ConfirmGui.Parent = ParentGui
-
-local ConfirmFrame = Instance.new("Frame")
-ConfirmFrame.Size = UDim2.new(0, 280, 0, 140)
-ConfirmFrame.Position = UDim2.new(0.5, -140, 0.5, -70)
-ConfirmFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-ConfirmFrame.BorderSizePixel = 0
-ConfirmFrame.Active = true
-ConfirmFrame.Draggable = true
-ConfirmFrame.Parent = ConfirmGui
-Instance.new("UICorner", ConfirmFrame).CornerRadius = UDim.new(0, 12)
-local ConfirmStroke = Instance.new("UIStroke")
-ConfirmStroke.Color = Color3.fromRGB(255, 215, 0)
-ConfirmStroke.Thickness = 2
-ConfirmStroke.Parent = ConfirmFrame
-
-local ConfirmTitle = Instance.new("TextLabel")
-ConfirmTitle.Size = UDim2.new(1, 0, 0, 40)
-ConfirmTitle.BackgroundTransparency = 1
-ConfirmTitle.Text = "⚠️ Tem certeza?"
-ConfirmTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
-ConfirmTitle.Font = Enum.Font.GothamBold
-ConfirmTitle.TextSize = 18
-ConfirmTitle.Parent = ConfirmFrame
-
-local ConfirmText = Instance.new("TextLabel")
-ConfirmText.Size = UDim2.new(1, -20, 0, 30)
-ConfirmText.Position = UDim2.new(0, 10, 0, 45)
-ConfirmText.BackgroundTransparency = 1
-ConfirmText.Text = "Quer excluir o script?"
-ConfirmText.TextColor3 = Color3.fromRGB(220, 220, 220)
-ConfirmText.Font = Enum.Font.GothamMedium
-ConfirmText.TextSize = 14
-ConfirmText.Parent = ConfirmFrame
-
-local BtnSim = Instance.new("TextButton")
-BtnSim.Size = UDim2.new(0, 110, 0, 35)
-BtnSim.Position = UDim2.new(0, 20, 0, 90)
-BtnSim.BackgroundColor3 = Color3.fromRGB(30, 140, 60)
-BtnSim.Text = "✅ Sim"
-BtnSim.TextColor3 = Color3.new(1,1,1)
-BtnSim.Font = Enum.Font.GothamBold
-BtnSim.Parent = ConfirmFrame
-Instance.new("UICorner", BtnSim).CornerRadius = UDim.new(0, 8)
-
-local BtnNao = Instance.new("TextButton")
-BtnNao.Size = UDim2.new(0, 110, 0, 35)
-BtnNao.Position = UDim2.new(1, -130, 0, 90)
-BtnNao.BackgroundColor3 = Color3.fromRGB(140, 30, 30)
-BtnNao.Text = "❌ Não"
-BtnNao.TextColor3 = Color3.new(1,1,1)
-BtnNao.Font = Enum.Font.GothamBold
-BtnNao.Parent = ConfirmFrame
-Instance.new("UICorner", BtnNao).CornerRadius = UDim.new(0, 8)
-
----------------------------------------------------------
--- FUNÇÕES DE MINIMIZAR / RESTAURAR
----------------------------------------------------------
-local function Minimizar()
-    Minimized = true
-    TweenService:Create(Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Transparency = 1}):Play()
-    Frame.Visible = false
-    MiniBola.Visible = true
-end
-
-local function Restaurar()
-    Minimized = false
-    MiniBola.Visible = false
-    Frame.Visible = true
-    TweenService:Create(Frame, TweenInfo.new(0.3), {Transparency = 0}):Play()
-end
-
----------------------------------------------------------
--- ATIVAÇÕES
----------------------------------------------------------
-local function ToggleAutoBall()
-   AutoBallEnabled = not AutoBallEnabled
-   if AutoBallEnabled then
-      FloatingBtn.Text = "SEGUIR BOLA:\nLIGADO ✅"
-      FloatingBtn.TextColor3 = Color3.fromRGB(50, 255, 50)
-   else
-      FloatingBtn.Text = "SEGUIR BOLA:\nDESLIGADO"
-      FloatingBtn.TextColor3 = Color3.fromRGB(255, 215, 0)
-      if BodyVel then
-         BodyVel:Destroy()
-         BodyVel = nil
-      end
-   end
-end
-
-FloatingBtn.MouseButton1Click:Connect(ToggleAutoBall)
-
--- Botão - Minimizar
-BtnMinimize.MouseButton1Click:Connect(Minimizar)
-
--- Clicar na bolinha = Restaurar
-MiniBola.MouseButton1Click:Connect(Restaurar)
-
--- Botão X = Confirmar exclusão
-BtnClose.MouseButton1Click:Connect(function()
-    ConfirmGui.Enabled = true
-    ConfirmFrame.BackgroundTransparency = 1
-    TweenService:Create(ConfirmFrame, TweenInfo.new(0.35, Enum.EasingStyle.Back), {BackgroundTransparency = 0}):Play()
-end)
-
--- Botão Sim = Excluir tudo
-BtnSim.MouseButton1Click:Connect(function()
-    MainGui:Destroy()
-    ConfirmGui:Destroy()
-    if BodyVel then BodyVel:Destroy() end
-end)
-
--- Botão Não = Fechar aviso
-BtnNao.MouseButton1Click:Connect(function()
-    TweenService:Create(ConfirmFrame, TweenInfo.new(0.25), {BackgroundTransparency = 1}):Play()
-    task.wait(0.25)
-    ConfirmGui.Enabled = false
-end)
-
+-- G key hold logic
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-   if not gameProcessed and input.KeyCode == Enum.KeyCode.G and not Minimized then
-      ToggleAutoBall()
-   end
+    if input.KeyCode == Enum.KeyCode.G and not gameProcessed then
+        if autoGuardToggleEnabled then
+            holdingG = true
+            autoGuardEnabled = true
+            lastPositions = {}
+            if not autoGuardConnection then
+                autoGuardConnection = RunService.Heartbeat:Connect(autoGuard)
+            end
+        end
+    end
 end)
 
-PlusBtn.MouseButton1Click:Connect(function()
-   if ReachDistance < 12 then
-      ReachDistance = ReachDistance + 1
-      ReachLabel.Text = "Alcance Reach: " .. ReachDistance .. " Studs"
-   end
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.G then
+        holdingG = false
+        autoGuardEnabled = false
+        if autoGuardConnection then
+            autoGuardConnection:Disconnect()
+            autoGuardConnection = nil
+        end
+        lastPositions = {}
+        local VirtualInputManager = game:GetService("VirtualInputManager")
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
+    end
 end)
 
-MinusBtn.MouseButton1Click:Connect(function()
-   if ReachDistance > 1 then
-      ReachDistance = ReachDistance - 1
-      ReachLabel.Text = "Alcance Reach: " .. ReachDistance .. " Studs"
-   end
-end)
+-- =====================
+-- FOLLOW BALL CARRIER
+-- =====================
+MainTab:CreateSection("Follow Ball Carrier")
 
--- Função para rastrear a bola do mapa
-local function GetBall()
-   for _, obj in pairs(workspace:GetDescendants()) do
-      if obj:IsA("BasePart") then
-         local name = obj.Name
-         if name == "TPS" or name == "ESA" or name == "MRS" or name == "PRS" or name == "MPS" or name == "Ball" or name == "Football" or name == "Soccer Ball" then
-            return obj
-         end
-      end
-   end
-   return nil
+local followEnabled = false
+local followConnection = nil
+local followOffset = -10
+
+local function enableFollowBallCarrier()
+    if followEnabled then return end
+    followEnabled = true
+    followConnection = RunService.Heartbeat:Connect(function()
+        if not followEnabled then return end
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        local ballCarrier, ballCarrierRoot = findPlayerWithBall()
+        if ballCarrier and ballCarrierRoot then
+            local maxDistance = isPark and 100 or math.huge
+            local dist = (hrp.Position - ballCarrierRoot.Position).Magnitude
+            if dist <= maxDistance then
+                hrp.CFrame = ballCarrierRoot.CFrame * CFrame.new(0, 0, followOffset)
+            end
+        end
+    end)
 end
 
----------------------------------------------------------
--- LOOPS DE FUNCIONALIDADE
----------------------------------------------------------
+local function disableFollowBallCarrier()
+    if not followEnabled then return end
+    followEnabled = false
+    if followConnection then
+        followConnection:Disconnect()
+        followConnection = nil
+    end
+end
 
--- Auto Follow (Seguir a bola sem travar)
+MainTab:CreateToggle({
+    Name = "Follow Ball Carrier",
+    CurrentValue = false,
+    Flag = "FollowBallCarrier",
+    Callback = function(value)
+        if value then
+            enableFollowBallCarrier()
+        else
+            disableFollowBallCarrier()
+        end
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "Follow Offset",
+    Range = {-10, 10},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = -10,
+    Flag = "FollowOffset",
+    Callback = function(value)
+        followOffset = value
+    end,
+})
+
+MainTab:CreateParagraph({
+    Title = "Follow Ball Carrier Info",
+    Content = "Instantly teleports you behind whoever has the ball. Adjust offset to position in front or behind them."
+})
+
+-- =====================
+-- AUTO REBOUND & STEAL
+-- =====================
+MainTab:CreateSection("Auto Rebound & Steal")
+
+local teleportEnabled = false
+local offsetDistance = 3
+
 RunService.RenderStepped:Connect(function()
-   if AutoBallEnabled and not Minimized and LocalPlayer.Character then
-      local char = LocalPlayer.Character
-      local root = char:FindFirstChild("HumanoidRootPart")
-      local humanoid = char:FindFirstChildOfClass("Humanoid")
-      local ball = GetBall()
+    if not teleportEnabled then return end
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
 
-      if root and humanoid and ball then
-         local targetPos = Vector3.new(ball.Position.X, root.Position.Y, ball.Position.Z)
-         local distance = (root.Position - targetPos).Magnitude
+    local closestBall, closestDist = nil, math.huge
+    local maxDistance = isPark and 100 or math.huge
 
-         if distance > 2.2 then
-            if not BodyVel or BodyVel.Parent ~= root then
-               if BodyVel then BodyVel:Destroy() end
-               BodyVel = Instance.new("BodyVelocity")
-               BodyVel.MaxForce = Vector3.new(100000, 0, 100000)
-               BodyVel.Velocity = Vector3.zero
-               BodyVel.Parent = root
+    for _, child in ipairs(workspace:GetChildren()) do
+        if child.Name == "Basketball" then
+            local part = child:IsA("BasePart") and child or child:FindFirstChildWhichIsA("BasePart")
+            if part then
+                local dist = (part.Position - hrp.Position).Magnitude
+                if dist < closestDist and dist <= maxDistance then
+                    closestDist = dist
+                    closestBall = part
+                end
             end
+        end
+    end
 
-            local direction = (targetPos - root.Position).Unit
-            root.CFrame = CFrame.lookAt(root.Position, targetPos)
-            
-            local speed = math.max(humanoid.WalkSpeed, 16)
-            BodyVel.Velocity = direction * speed
-         else
-            if BodyVel then
-               BodyVel:Destroy()
-               BodyVel = nil
-            end
-         end
-      end
-   else
-      if BodyVel then
-         BodyVel:Destroy()
-         BodyVel = nil
-      end
-   end
+    if closestBall then
+        hrp.CFrame = CFrame.new(closestBall.Position + closestBall.CFrame.LookVector * offsetDistance)
+    end
 end)
 
--- REACH REAL (Método Magnet/CFrame + Touch)
+MainTab:CreateToggle({
+    Name = "Auto Rebound & Steal",
+    CurrentValue = false,
+    Flag = "AutoRebound",
+    Callback = function(value)
+        teleportEnabled = value
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "Rebound Offset Distance",
+    Range = {0, 6},
+    Increment = 0.1,
+    Suffix = " studs",
+    CurrentValue = 3,
+    Flag = "ReboundOffset",
+    Callback = function(value)
+        offsetDistance = value
+    end,
+})
+
+-- =====================
+-- BALL MAGNET
+-- =====================
+MainTab:CreateSection("Ball Magnet")
+
+local magnetEnabled = false
+local MagsDist = 30
+
 RunService.Heartbeat:Connect(function()
-   if ReachDistance > 1 and not Minimized and LocalPlayer.Character then
-      local char = LocalPlayer.Character
-      local leg = char:FindFirstChild("Right Leg") or char:FindFirstChild("Right Lower Leg") or char:FindFirstChild("HumanoidRootPart")
-      local ball = GetBall()
+    if not magnetEnabled then return end
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
 
-      if leg and ball then
-         local distance = (leg.Position - ball.Position).Magnitude
-         local maxReach = ReachDistance * 1.8
-
-         if distance <= maxReach and distance > 1.5 then
-            if firetouchinterest then
-               firetouchinterest(ball, leg, 0)
-               firetouchinterest(ball, leg, 1)
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and v.Name == "Basketball" then
+            local dist = (hrp.Position - v.Position).Magnitude
+            if dist <= MagsDist then
+                firetouchinterest(hrp, v, 0)
+                firetouchinterest(hrp, v, 1)
             end
-            if sethiddenproperty then
-               sethiddenproperty(ball, "NetworkIsServerBounded", false)
-            end
-            ball.CFrame = leg.CFrame * CFrame.new(0, -1, -1)
-         end
-      end
-   end
+        end
+    end
 end)
+
+MainTab:CreateToggle({
+    Name = "Ball Magnet",
+    CurrentValue = false,
+    Flag = "BallMagnet",
+    Callback = function(value)
+        magnetEnabled = value
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "Magnet Distance",
+    Range = {10, 85},
+    Increment = 1,
+    Suffix = " studs",
+    CurrentValue = 30,
+    Flag = "MagnetDistance",
+    Callback = function(value)
+        MagsDist = value
+    end,
+})
+
+-- =====================
+-- SPEED BOOST
+-- =====================
+PlayerTab:CreateSection("Speed Boost")
+
+local speedBoostEnabled = false
+local desiredSpeed = 16
+local speedBoostConnection = nil
+
+local function startCFrameSpeed(speed)
+    local connection
+    connection = RunService.RenderStepped:Connect(function(deltaTime)
+        local character = player.Character
+        if not character then return end
+        local root = character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if not root or not humanoid then return end
+        local moveVec = humanoid.MoveDirection
+        if moveVec.Magnitude > 0 then
+            local speedDelta = math.max(speed - humanoid.WalkSpeed, 0)
+            root.CFrame = root.CFrame + (moveVec.Unit * speedDelta * deltaTime)
+        end
+    end)
+    return function()
+        if connection then connection:Disconnect() end
+    end
+end
+
+PlayerTab:CreateToggle({
+    Name = "Speed Boost",
+    CurrentValue = false,
+    Flag = "SpeedBoost",
+    Callback = function(value)
+        speedBoostEnabled = value
+        if value then
+            if speedBoostConnection then speedBoostConnection() end
+            speedBoostConnection = startCFrameSpeed(desiredSpeed)
+        else
+            if speedBoostConnection then speedBoostConnection() end
+            speedBoostConnection = nil
+        end
+    end,
+})
+
+PlayerTab:CreateSlider({
+    Name = "Speed Amount",
+    Range = {16, 23},
+    Increment = 0.1,
+    Suffix = " WS",
+    CurrentValue = 16,
+    Flag = "SpeedAmount",
+    Callback = function(value)
+        desiredSpeed = value
+        if speedBoostEnabled then
+            if speedBoostConnection then speedBoostConnection() end
+            speedBoostConnection = startCFrameSpeed(desiredSpeed)
+        end
+    end,
+})
+
+-- =====================
+-- VISUALS
+-- =====================
+MiscTab:CreateSection("Visuals")
+
+local function setBGVisible()
+    for _, model in pairs(workspace:GetChildren()) do
+        if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") then
+            local hrp = model.HumanoidRootPart
+            for _, obj in pairs(hrp:GetDescendants()) do
+                if obj.Name == "BG" and obj:IsA("BodyGyro") then
+                    obj.Parent = hrp
+                    obj.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+                end
+            end
+        end
+    end
+end
+
+local function hideBG()
+    for _, model in pairs(workspace:GetChildren()) do
+        if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") then
+            for _, obj in pairs(model.HumanoidRootPart:GetDescendants()) do
+                if obj.Name == "BG" and obj:IsA("BodyGyro") then
+                    obj.Parent = nil
+                end
+            end
+        end
+    end
+end
+
+MiscTab:CreateToggle({
+    Name = "Show BodyGyro",
+    CurrentValue = false,
+    Flag = "ShowBG",
+    Callback = function(value)
+        if value then setBGVisible() else hideBG() end
+    end,
+})
+
+-- =====================
+-- NOTIFICATION
+-- =====================
+Rayfield:Notify({
+    Title = "Kali Hub Loaded",
+    Content = "All features ready! Hold G for Auto Guard.",
+    Duration = 4,
+    Image = "check",
+})
