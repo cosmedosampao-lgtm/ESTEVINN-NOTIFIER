@@ -10,12 +10,12 @@ local Char = player.Character or player.CharacterAdded:Wait()
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Kali Hub",
-    LoadingTitle = "Kali Hub",
+    Name = "Moreno Hub",
+    LoadingTitle = "Moreno Hub",
     LoadingSubtitle = "Basketball Legends",
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = "KaliHub",
+        FolderName = "MorenoHub",
         FileName = "Config"
     },
     KeySystem = false,
@@ -569,7 +569,7 @@ MiscTab:CreateToggle({
 -- NOTIFICATION
 -- =====================
 Rayfield:Notify({
-    Title = "Kali Hub Loaded",
+    Title = "Moreno Hub Loaded",
     Content = "All features ready! Hold G for Auto Guard.",
     Duration = 4,
     Image = "check",
